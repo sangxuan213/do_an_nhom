@@ -1,80 +1,88 @@
-# 🚗 CarWash Pro - Smart Automated Car Wash Management System
+# 🚗 AutoClean - Hệ Thống Quản Lý Rửa Xe Thông Minh
 
-A full-stack car wash management system with advance booking and loyalty program.
+Hệ thống quản lý dịch vụ rửa xe full-stack tích hợp tính năng đặt lịch trước (Advance Booking), quản lý người dùng và theo dõi tiến độ rửa xe.
 
-## Tech Stack
+## 🛠️ Công Nghệ Sử Dụng (Tech Stack)
 
-| Layer | Technology |
+| Lớp | Công Nghệ |
 |-------|-----------|
-| Frontend | React 19 + Vite + TypeScript |
-| Styling | Tailwind CSS v4 |
-| State | Zustand |
-| Backend | Java 17 + Spring Boot 3 |
-| Security | Spring Security + JWT |
-| Database | PostgreSQL |
-| ORM | Spring Data JPA + Hibernate |
+| **Frontend** | React 19 + Vite + TypeScript |
+| **Styling** | Tailwind CSS v4 |
+| **Backend** | Java 17 + Spring Boot 3 |
+| **Security** | Spring Security + JWT |
+| **Database** | PostgreSQL |
+| **ORM** | Spring Data JPA + Hibernate |
 
-## Project Structure
+## 📁 Cấu Trúc Dự Án
 
 ```
 do_an_nhom/
-├── backend/     → Spring Boot REST API (port 8080)
-├── frontend/    → React SPA (port 3000, proxied to backend)
+├── backend/     → Spring Boot REST API (Chạy trên cổng 8080)
+├── frontend/    → React SPA (Chạy trên cổng 3000, gọi API qua proxy tới 8080)
 └── README.md
 ```
 
-## Prerequisites
+## ⚙️ Yêu Cầu Cài Đặt (Prerequisites)
 
+Để chạy dự án trên máy cá nhân, bạn cần cài đặt các phần mềm sau:
 - **Java 17+** (JDK)
 - **Node.js 18+** & npm
 - **PostgreSQL 15+**
-- **Maven 3.9+**
 
-## Getting Started
+---
 
-### 1. Database Setup
+## 🚀 Hướng Dẫn Chạy Dự Án (Chạy ở môi trường Local)
 
+### Bước 1: Khởi tạo Database
+Mở công cụ quản lý PostgreSQL (như pgAdmin hoặc psql) và chạy câu lệnh sau để tạo database:
 ```sql
 CREATE DATABASE carwash_db;
 ```
+*(Lưu ý: Bạn có thể cập nhật User / Password trong file `backend/src/main/resources/application.yml` nếu tài khoản Postgres của bạn khác với mặc định `postgres/postgres`)*
 
-### 2. Backend
+### Bước 2: Chạy Backend (Spring Boot)
+Mở một cửa sổ Terminal (hoặc PowerShell) mới, điều hướng vào thư mục `backend` và sử dụng Maven Wrapper để chạy:
 
 ```bash
 cd backend
-# Update src/main/resources/application.yml with your DB credentials
-mvn spring-boot:run
+
+# Dành cho Windows:
+.\mvnw spring-boot:run
+
+# Dành cho MacOS/Linux:
+./mvnw spring-boot:run
 ```
+> **Lưu ý:** Lần chạy đầu tiên sẽ tốn một ít thời gian để Maven tải các thư viện về.
+Backend sẽ được khởi chạy thành công ở địa chỉ `http://localhost:8080`. Hệ thống sẽ tự động nạp các dữ liệu mẫu (Seeding) ban đầu vào Database.
 
-The backend will start on `http://localhost:8080`.
-
-### 3. Frontend
+### Bước 3: Chạy Frontend (React + Vite)
+Mở thêm **một cửa sổ Terminal thứ hai**, điều hướng vào thư mục `frontend` và chạy:
 
 ```bash
 cd frontend
+
+# Cài đặt các gói thư viện
 npm install
+
+# Khởi chạy server phát triển
 npm run dev
 ```
+Server Frontend sẽ khởi chạy tại địa chỉ `http://localhost:3000`. Khi truy cập địa chỉ này trên trình duyệt, bạn sẽ thấy giao diện của trang web! (Tất cả các lệnh gọi `/api` từ frontend sẽ được tự động proxy sang backend 8080).
 
-The frontend will start on `http://localhost:3000` with API calls proxied to the backend.
+---
 
-## Features
+## ✨ Các Tính Năng Nổi Bật
 
-- 🔐 **JWT Authentication** - Secure login with role-based access (Customer/Admin)
-- 📅 **Advance Booking** - Select services, view time slots, book appointments
-- ⭐ **Loyalty Program** - Earn points, tier system (Bronze/Silver/Gold), redeem discounts
-- 📊 **Admin Dashboard** - Manage bookings, users, and machine statuses
-- 🤖 **IoT Mock** - Real-time washing machine status monitoring
+- 🔐 **Xác thực JWT** - Đăng nhập an toàn với phân quyền truy cập (Khách hàng/Admin)
+- 📅 **Đặt lịch thông minh** - Khách hàng có thể chọn gói dịch vụ, thêm add-ons, chọn khung giờ và đặt vé điện tử
+- 🔍 **Theo dõi đơn hàng trực tuyến** - Kiểm tra trạng thái rửa xe (Đang đợi, Đang rửa, Đã xong) thông qua biển số/số điện thoại
+- 📊 **Cơ sở dữ liệu tự động** - Tự động đồng bộ các thay đổi vào CSDL PostgreSQL bằng Hibernate (JPA)
 
-## API Endpoints (Preview)
+## 📡 Danh sách API Chính (Preview)
 
-| Method | Endpoint | Description |
+| Method | Endpoint | Chức năng |
 |--------|---------|-------------|
-| POST | `/api/auth/register` | Register new customer |
-| POST | `/api/auth/login` | Login & receive JWT |
-| GET | `/api/services` | List service packages |
-| GET | `/api/bookings/slots` | Available time slots |
-| POST | `/api/bookings` | Create booking |
-| GET | `/api/loyalty/profile` | Loyalty points & tier |
-| GET | `/api/admin/bookings` | All bookings (admin) |
-| GET | `/api/admin/machines` | Machine statuses (admin) |
+| POST | `/api/auth/register` | Đăng ký tài khoản khách hàng mới |
+| POST | `/api/auth/login` | Đăng nhập & lấy token JWT |
+| POST | `/api/bookings` | Đặt lịch hẹn rửa xe |
+| GET | `/api/bookings/my-bookings` | Lấy danh sách lịch đã đặt của User |
