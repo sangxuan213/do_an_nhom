@@ -13,15 +13,15 @@ import lombok.NoArgsConstructor;
 @Builder
 public class CustomerProfileRequest {
 
-    @NotBlank(message = "Full name is required")
-    @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
+    @NotBlank(message = "Ho ten khong duoc de trong")
+    @Size(min = 2, max = 100, message = "Ho ten phai tu 2 den 100 ky tu")
     private String fullName;
 
-    @NotBlank(message = "Phone number is required")
-    @Size(max = 20, message = "Phone number must not exceed 20 characters")
+    @NotBlank(message = "So dien thoai khong duoc de trong")
+    @Size(max = 20, message = "So dien thoai khong duoc vuot qua 20 ky tu")
     private String phone;
 
-    @NotBlank(message = "License plate is required")
-    @Size(max = 20, message = "License plate must not exceed 20 characters")
+    @NotBlank(message = "Bien so xe khong duoc de trong")
+    @Size(max = 20, message = "Bien so xe khong duoc vuot qua 20 ky tu")
     private String licensePlate;
 }
