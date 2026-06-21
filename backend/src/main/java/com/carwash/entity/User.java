@@ -74,6 +74,10 @@ public class User implements UserDetails {
     @Builder.Default
     private List<Booking> bookings = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @Builder.Default
+    private List<Vehicle> vehicles = new ArrayList<>();
+
     // ===== UserDetails Implementation =====
 
     @Override
