@@ -1,18 +1,11 @@
 package com.carwash.customer.service;
 
-import com.carwash.customer.entity.Customer;
-import java.util.*;
+import com.carwash.customer.dto.request.CustomerRequest;
+import com.carwash.customer.dto.response.CustomerResponse;
 
 public interface ICustomerService {
+    
+    CustomerResponse getCustomerProfile(String email);
 
-    List<Customer> getAllCustomers();
-
-    Customer getCustomerById(Long id);
-
-    Customer createCustomer(Customer customer);
-
-    Customer updateCustomer(Long id, Customer customer);
-
-    void deleteCustomer(Long id);
-
+    CustomerResponse updateCustomerProfile(String email, CustomerRequest request);
 }

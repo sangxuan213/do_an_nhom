@@ -1,46 +1,52 @@
 package com.carwash.customer.service;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
+import com.carwash.customer.dto.request.CustomerRequest;
+import com.carwash.customer.dto.response.CustomerResponse;
 import com.carwash.customer.entity.Customer;
-import com.carwash.customer.repository.CustomerRepository;
-
+import com.carwash.entity.User;
+import com.carwash.repository.UserRepository;
+import com.carwash.exception.ResourceNotFoundException;
+import com.carwash.customer.mapper.ICustomerMapper;
+import com.carwash.customer.repository.ICustomerRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class CustomerService implements ICustomerService {
-    private final CustomerRepository customerRepository;
-    public CustomerService(CustomerRepository customerRepository) {
-    this.customerRepository = customerRepository;
-    }
+    
+    private final ICustomerRepository customerRepository;
+    private final UserRepository userRepository;
+    private final ICustomerMapper customerMapper;
+
+    // Lấy thông tin profile bằng email của User đăng nhập
     @Override
-    public List<Customer> getAllCustomers() {
-        return customerRepository.findAll();
+    public CustomerResponse getCustomerProfile(String email) {
+        Customer customer = customerRepository.findByUserEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", "email", email));
+        return customerMapper.toResponse(customer);
     }
 
     @Override
-    public Customer getCustomerById(Long id) {
-        return customerRepository.findById(id).orElseThrow(() -> new com.carwash.exception.ResourceNotFoundException("Khong thay khach hang"));
-    }
+    @Transactional
+    public CustomerResponse updateCustomerProfile(String email, CustomerRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
 
-    @Override
-    public Customer createCustomer(Customer customer) {
-        return customerRepository.save(customer);
-    }
+        // Cập nhật thông tin User liên kết
+        user.setFullName(request.getName());
+        user.setPhone(request.getPhone());
+        userRepository.save(user);
 
-    @Override
-    public Customer updateCustomer(Long id, Customer customer) {
-        Customer existingCustomer = getCustomerById(id);
-        existingCustomer.setName(customer.getName());
-        existingCustomer.setPhone(customer.getPhone());
-        existingCustomer.setLicensePlate(customer.getLicensePlate());
-        return customerRepository.save(existingCustomer);
-    }
-
-    @Override
-    public void deleteCustomer(Long id) {
-        Customer customer = getCustomerById(id);
-        customerRepository.delete(customer);
+        // Tìm hoặc tạo mới Customer
+        Customer customer = customerRepository.findByUserEmail(email)
+                .orElseGet(() -> Customer.builder().user(user).build());
+        customer.setName(request.getName());
+        customer.setPhone(request.getPhone());
+        customer.setLicensePlate(request.getLicensePlate());
+        
+        Customer savedCustomer = customerRepository.save(customer);
+        return customerMapper.toResponse(savedCustomer);
     }
 }
