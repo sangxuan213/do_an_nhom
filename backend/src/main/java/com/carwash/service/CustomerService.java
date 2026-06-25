@@ -16,13 +16,24 @@ public class CustomerService {
     private final CustomerRepository customerRepository;
     private final UserRepository userRepository;
     private final CustomerMapper customerMapper;
-    // lấy hồ sơ
+    /**
+     * Retrieves a customer profile by email, creating one when needed.
+     *
+     * @param email the user's email address
+     * @return the customer's profile response
+     */
     @Transactional
     public CustomerResponse getCustomerProfile(String email) {
         Customer customer = getOrCreateCustomer(email);
         return customerMapper.toResponse(customer);
     }
-    // cập nhật hồ sơ
+    /**
+     * Updates a customer's profile and returns the saved profile data.
+     *
+     * @param email   the email address used to identify the customer
+     * @param request the profile data to apply
+     * @return the updated customer profile
+     */
     @Transactional
     public CustomerResponse updateCustomerProfile(String email, CustomerRequest request) {
         Customer customer = getOrCreateCustomer(email);
@@ -36,7 +47,13 @@ public class CustomerService {
         customer = customerRepository.save(customer);
         return customerMapper.toResponse(customer);
     }
-    // tìm hoặc tự tạo mới hồ sơ
+    /**
+     * Finds a customer by the associated user's email or creates one from the user profile.
+     *
+     * @param email the user's email address
+     * @return the existing or newly created customer
+     * @throws ResourceNotFoundException if no user exists for the given email
+     */
     private Customer getOrCreateCustomer(String email) {
         return customerRepository.findByUserEmail(email)
                 .orElseGet(() -> {

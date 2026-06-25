@@ -16,13 +16,23 @@ import org.springframework.web.bind.annotation.*;
 public class CustomerController {
     private final CustomerService customerService;
     private final LoyaltyService loyaltyService;
-    // lấy hồ sơ
+    /**
+     * Gets the authenticated customer's profile.
+     *
+     * @param authentication the current authentication token
+     * @return the customer profile wrapped in a successful response
+     */
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<CustomerResponse>> getProfile(Authentication authentication) {
         CustomerResponse profile = customerService.getCustomerProfile(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Lay thong tin profile thanh cong", profile));
     }
-    // cập nhật hồ sơ
+    /**
+     * Updates the authenticated customer's profile.
+     *
+     * @param  request the profile data to apply
+     * @return         the updated customer profile
+     */
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<CustomerResponse>> updateProfile(
             Authentication authentication,
@@ -30,7 +40,12 @@ public class CustomerController {
         CustomerResponse updated = customerService.updateCustomerProfile(authentication.getName(), request);
         return ResponseEntity.ok(ApiResponse.success("Cap nhat thong tin profile thanh cong", updated));
     }
-    // lấy thông tin điểm tích lũy
+    /**
+     * Retrieves the authenticated customer's loyalty information.
+     *
+     * @param authentication the current authentication principal
+     * @return the customer's loyalty information wrapped in a success response
+     */
     @GetMapping("/loyalty")
     public ResponseEntity<ApiResponse<LoyaltyResponse>> getLoyalty(Authentication authentication) {
         LoyaltyResponse loyalty = loyaltyService.getLoyaltyProfile(authentication.getName());

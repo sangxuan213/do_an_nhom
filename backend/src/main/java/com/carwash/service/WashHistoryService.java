@@ -16,7 +16,12 @@ public class WashHistoryService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final WashHistoryMapper washHistoryMapper;
-    // lấy tất cả lịch sử rửa xe
+    /**
+     * Gets all wash history records for the customer identified by email.
+     *
+     * @param email the customer's email address
+     * @return the customer's wash history records ordered by booking date descending
+     */
     public List<WashHistoryResponse> getCustomerWashHistory(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
@@ -25,7 +30,13 @@ public class WashHistoryService {
                 .map(washHistoryMapper::toResponse)
                 .collect(Collectors.toList());
     }
-    // lấy lịch sử rửa xe đã xong
+    /**
+     * Retrieves the completed wash history for a customer by email.
+     *
+     * @param email the customer's email address
+     * @return the completed wash history records for the customer
+     * @throws ResourceNotFoundException if no user exists for the specified email
+     */
     public List<WashHistoryResponse> getCompletedWashHistory(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));

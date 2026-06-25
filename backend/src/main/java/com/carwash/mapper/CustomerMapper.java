@@ -6,6 +6,12 @@ import org.springframework.stereotype.Component;
 // Mapper cho Customer và CustomerDTO
 @Component
 public class CustomerMapper {
+    /**
+     * Converts a Customer entity to a CustomerResponse.
+     *
+     * @param customer the customer to convert
+     * @return the mapped customer response, or {@code null} if the customer is {@code null}
+     */
     public CustomerResponse toResponse(Customer customer) {
         if (customer == null) {
             return null;
@@ -19,6 +25,12 @@ public class CustomerMapper {
                 .licensePlate(customer.getLicensePlate())
                 .build();
     }
+    /**
+     * Converts a customer request into a customer entity.
+     *
+     * @param request the source request
+     * @return the created customer entity, or {@code null} if the request is {@code null}
+     */
     public Customer toEntity(CustomerRequest request) {
         if (request == null) {
             return null;
@@ -29,6 +41,12 @@ public class CustomerMapper {
                 .licensePlate(request.getLicensePlate())
                 .build();
     }
+    /**
+     * Updates a customer with values from a customer request.
+     *
+     * @param request the source values to apply
+     * @param customer the customer to update
+     */
     public void updateEntity(CustomerRequest request, Customer customer) {
         if (request == null || customer == null) {
             return;

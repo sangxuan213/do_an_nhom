@@ -5,6 +5,12 @@ import org.springframework.stereotype.Component;
 // Booking sang WashHistoryResponse
 @Component
 public class WashHistoryMapper {
+    /**
+     * Maps a booking to a wash history response.
+     *
+     * @param booking the booking to map
+     * @return the mapped wash history response, or {@code null} if the booking is {@code null}
+     */
     public WashHistoryResponse toResponse(Booking booking) {
         if (booking == null) {
             return null;

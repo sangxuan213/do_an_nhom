@@ -14,13 +14,23 @@ import java.util.List;
 @RequiredArgsConstructor
 public class WashHistoryController {
     private final WashHistoryService washHistoryService;
-    // lấy lịch sử
+    /**
+     * Retrieves the authenticated customer's wash history.
+     *
+     * @param  authentication the current authenticated principal used to identify the customer
+     * @return                a response containing the customer's wash history
+     */
     @GetMapping
     public ResponseEntity<ApiResponse<List<WashHistoryResponse>>> getWashHistory(Authentication authentication) {
         List<WashHistoryResponse> history = washHistoryService.getCustomerWashHistory(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Lay lich su dat lich thanh cong", history));
     }
-    // lấy lịch sử đã xong
+    /**
+     * Retrieves the authenticated customer's completed wash history.
+     *
+     * @param authentication the authenticated customer principal
+     * @return a response containing the customer's completed wash history
+     */
     @GetMapping("/completed")
     public ResponseEntity<ApiResponse<List<WashHistoryResponse>>> getCompletedWashHistory(Authentication authentication) {
         List<WashHistoryResponse> history = washHistoryService.getCompletedWashHistory(authentication.getName());
