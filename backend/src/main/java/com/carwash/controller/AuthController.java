@@ -6,6 +6,7 @@ import com.carwash.dto.response.ApiResponse;
 import com.carwash.dto.response.AuthResponse;
 import com.carwash.dto.response.UserResponse;
 import com.carwash.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        authService.logout(authHeader);
+        return ResponseEntity.ok(ApiResponse.success("Đăng xuất thành công", null));
+    }
+
+    // Tạm giữ lại endpoint này nếu frontend đang dùng, nhưng đúng ra nó nên ở AccountController
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(Authentication authentication) {
         UserResponse user = authService.getCurrentUser(authentication.getName());
