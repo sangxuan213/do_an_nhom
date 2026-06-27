@@ -1,8 +1,6 @@
 package com.carwash.config;
 
-<<<<<<<HEAD=======
-
-import com.carwash.repository.SessionRepository;>>>>>>>Auth_Account
+import com.carwash.repository.SessionRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,9 +22,8 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;<<<<<<<HEAD=======
-    private final SessionRepository sessionRepository; // Tiêm repo vào để check trạng thái đăng xuất
-    >>>>>>>Auth_Account
+    private final UserDetailsService userDetailsService;
+    private final SessionRepository sessionRepository;
 
     @Override
     protected void doFilterInternal(
@@ -55,16 +52,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-<<<<<<< HEAD
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-=======
-            // Kiểm tra token hợp lệ VÀ session trong database chưa bị thu hồi (is_revoked == false)
             boolean isSessionValid = sessionRepository.findByToken(jwt)
                     .map(session -> !session.isRevoked())
                     .orElse(false);
 
             if (jwtService.isTokenValid(jwt, userDetails) && isSessionValid) {
->>>>>>> Auth_Account
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
@@ -77,6 +69,4 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
-<<<<<<< HEAD
-}=======
-}>>>>>>>Auth_Account
+}
