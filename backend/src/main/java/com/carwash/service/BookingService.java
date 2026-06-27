@@ -33,6 +33,8 @@ public class BookingService {
     private final ServicePackageRepository servicePackageRepository;
     private final UserRepository userRepository;
     private final LoyaltyService loyaltyService;
+    private final TierBookingWindowPolicy tierBookingWindowPolicy;
+    private final TierQueuePolicy tierQueuePolicy;
 
     // Maximum concurrent bookings per time slot
     private static final int MAX_BOOKINGS_PER_SLOT = 3;
@@ -66,6 +68,11 @@ public class BookingService {
             throw new BadRequestException("Cannot book a date in the past");
         }
 
+        // Kiem tra gioi han ngay dat truoc theo hang the
+        if (!tierBookingWindowPolicy.canBookAdvance(user.getLoyaltyTier(), bookingDate)) {
+            throw new BadRequestException("Your membership tier does not allow booking this far in advance.");
+        }
+
         if (!TIME_SLOTS.contains(request.getTimeSlot())) {
             throw new BadRequestException("Invalid time slot. Available slots: " + TIME_SLOTS);
         }
@@ -97,6 +104,9 @@ public class BookingService {
             }
         }
 
+        // Tinh toan do uu tien vao hang cho dua tren hang the
+        int queuePriority = tierQueuePolicy.calculateQueuePriority(user.getLoyaltyTier());
+
         Booking booking = Booking.builder()
                 .user(user)
                 .servicePackage(servicePackage)
@@ -111,6 +121,7 @@ public class BookingService {
                 .pointsEarned(0)
                 .pointsRedeemed(pointsRedeemed)
                 .discountApplied(discountApplied)
+                .queuePriority(queuePriority)
                 .build();
 
         booking = bookingRepository.save(booking);
