@@ -101,7 +101,7 @@ public class Booking {
     private Integer pointsRedeemed = 0;
 
     // ===== Lấy độ ưu tiên theo hạng =====
-    @Column(name = "priority", nullable = false)
+    @Column(name = "priority", nullable = false, columnDefinition = "integer default 1")
     @Builder.Default
     private Integer priority = 1;  // 1: NORMAL, 2: MEDIUM, 3: HIGH, 4: PLATINUM
 
