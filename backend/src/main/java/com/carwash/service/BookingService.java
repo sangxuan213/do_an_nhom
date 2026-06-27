@@ -33,11 +33,11 @@ public class BookingService {
     private final ServicePackageRepository servicePackageRepository;
     private final UserRepository userRepository;
     private final LoyaltyService loyaltyService;
-    private final TierBookingWindowPolicy tierBookingWindowPolicy;
-    private final TierQueuePolicy tierQueuePolicy;
 
     // Maximum concurrent bookings per time slot
     private static final int MAX_BOOKINGS_PER_SLOT = 3;
+
+    private static final BigDecimal DISCOUNT_SCALE = new BigDecimal("100");
 
     // Available time slots (8 AM to 6 PM, hourly)
     private static final List<String> TIME_SLOTS = List.of(
@@ -64,13 +64,16 @@ public class BookingService {
             throw new BadRequestException("Invalid date format. Use YYYY-MM-DD");
         }
 
-        if (bookingDate.isBefore(LocalDate.now())) {
-            throw new BadRequestException("Cannot book a date in the past");
+        // ===== Tính năng tier-based booking window( giới hạn ngày đặt trước) =====
+        int maxDays = loyaltyService.getMaxBookingDays(user.getLoyaltyTier());
+        if (bookingDate.isAfter(LocalDate.now().plusDays(maxDays))) {
+            throw new BadRequestException(
+                    "Your membership tier does not allow booking this far in advance. Max allowed: " + maxDays + " days"
+            );
         }
 
-        // Kiem tra gioi han ngay dat truoc theo hang the
-        if (!tierBookingWindowPolicy.canBookAdvance(user.getLoyaltyTier(), bookingDate)) {
-            throw new BadRequestException("Your membership tier does not allow booking this far in advance.");
+        if (bookingDate.isBefore(LocalDate.now())) {
+            throw new BadRequestException("Cannot book a date in the past");
         }
 
         if (!TIME_SLOTS.contains(request.getTimeSlot())) {
@@ -88,6 +91,12 @@ public class BookingService {
             throw new BadRequestException("This time slot is fully booked. Please choose another slot.");
         }
 
+        // ===== Tính năng auto-apply perks( tự động giảm giá theo hạng) =====
+        int discountPercent = loyaltyService.getDiscountPercent(user.getLoyaltyTier());
+        BigDecimal tierDiscount = servicePackage.getPrice()
+                .multiply(BigDecimal.valueOf(discountPercent))
+                .divide(DISCOUNT_SCALE, java.math.RoundingMode.HALF_UP);
+
         // Calculate discount from redeemed points
         BigDecimal discountApplied = BigDecimal.ZERO;
         int pointsRedeemed = 0;
@@ -104,8 +113,20 @@ public class BookingService {
             }
         }
 
-        // Tinh toan do uu tien vao hang cho dua tren hang the
-        int queuePriority = tierQueuePolicy.calculateQueuePriority(user.getLoyaltyTier());
+        // Final price: base price - tier discount - points discount
+        BigDecimal finalPrice = servicePackage.getPrice()
+                .subtract(tierDiscount)
+                .subtract(discountApplied);
+        if (finalPrice.compareTo(BigDecimal.ZERO) < 0) {
+            finalPrice = BigDecimal.ZERO;
+        }
+
+        // ===== Tính năng lấy độ ưu tiên theo hạng =====
+        int priority = loyaltyService.getQueuePriority(user.getLoyaltyTier());
+        int queuePriority = priority;
+
+        // ===== Quyền lợi áp dụng =====
+        List<String> appliedPerks = new ArrayList<>(loyaltyService.getPerksByTier(user.getLoyaltyTier()));
 
         Booking booking = Booking.builder()
                 .user(user)
@@ -115,13 +136,15 @@ public class BookingService {
                 .licensePlate(request.getLicensePlate())
                 .vehicleType(request.getVehicleType())
                 .notes(request.getNotes())
-                .totalCost(request.getTotalCost() != null ? request.getTotalCost() : servicePackage.getPrice().subtract(discountApplied))
+                .totalCost(request.getTotalCost() != null ? request.getTotalCost() : finalPrice)
                 .addOnIds(request.getAddOnIds() != null ? request.getAddOnIds() : new ArrayList<>())
                 .status(BookingStatus.PENDING)
                 .pointsEarned(0)
                 .pointsRedeemed(pointsRedeemed)
-                .discountApplied(discountApplied)
+                .discountApplied(discountApplied.add(tierDiscount))
                 .queuePriority(queuePriority)
+                .priority(priority)
+                .appliedPerks(appliedPerks)
                 .build();
 
         booking = bookingRepository.save(booking);

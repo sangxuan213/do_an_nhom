@@ -1,8 +1,7 @@
-package com.carwash.service;
+package com.carwash.loyalty.service;
 
 import com.carwash.dto.response.LoyaltyResponse;
 import com.carwash.entity.User;
-import com.carwash.dto.response.TierInfoResponse;
 import com.carwash.enums.LoyaltyTier;
 import com.carwash.exception.BadRequestException;
 import com.carwash.exception.ResourceNotFoundException;
@@ -11,11 +10,15 @@ import com.carwash.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.carwash.entity.LoyaltyConfig;
-import com.carwash.repository.LoyaltyConfigRepository;
+import com.carwash.loyalty.model.entity.LoyaltyConfig;
+import com.carwash.loyalty.repository.LoyaltyConfigRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.carwash.repository.LoyaltyTransactionRepository;
+import com.carwash.loyalty.repository.LoyaltyTransactionRepository;
+import com.carwash.loyalty.model.dto.response.TransactionResponse;
+import com.carwash.loyalty.model.dto.response.TierInfoResponse;
+import java.util.ArrayList;
 import java.util.List;
+
 
 @Service
 @RequiredArgsConstructor
@@ -86,7 +89,6 @@ public class LoyaltyService implements ILoyaltyService {
     }
 
     private LoyaltyTier calculateTier(int points) {
-        if (points >= PLATINUM_THRESHOLD) return LoyaltyTier.PLATINUM;
         if (points >= GOLD_THRESHOLD) return LoyaltyTier.GOLD;
         if (points >= SILVER_THRESHOLD) return LoyaltyTier.SILVER;
         return LoyaltyTier.BRONZE;
@@ -97,7 +99,7 @@ public class LoyaltyService implements ILoyaltyService {
             case BRONZE -> LoyaltyTier.SILVER;
             case SILVER -> LoyaltyTier.GOLD;
             case GOLD -> LoyaltyTier.PLATINUM;
-            case PLATINUM -> null; // Max tier
+            case PLATINUM -> null;// Max tier
         };
     }
 
@@ -105,8 +107,8 @@ public class LoyaltyService implements ILoyaltyService {
         return switch (currentTier) {
             case BRONZE -> SILVER_THRESHOLD - currentPoints;
             case SILVER -> GOLD_THRESHOLD - currentPoints;
-            case GOLD -> PLATINUM_THRESHOLD - currentPoints;
-            case PLATINUM -> 0; // Already max
+            case GOLD -> PLATINUM_THRESHOLD;
+            case PLATINUM -> 0; //Already max
         };
     }
 
@@ -117,7 +119,6 @@ public class LoyaltyService implements ILoyaltyService {
         return configRepository.findByTier(tier.name())
                 .orElseThrow(() -> new ResourceNotFoundException("Tier config not found for " + tier));
     }
-
     @Override
     @Transactional
     public void redeemPoints(String email, int pointsToRedeem, Long rewardId) {
@@ -158,7 +159,6 @@ public class LoyaltyService implements ILoyaltyService {
                         .build()
         );
     }
-
     @Override
     public List<String> getPerksByTier(LoyaltyTier tier) {
         switch (tier) {
@@ -172,22 +172,27 @@ public class LoyaltyService implements ILoyaltyService {
                 return List.of("5% giảm giá", "Tích điểm đổi quà");
         }
     }
+    // Cập nhật các method để dùng config từ database
 
+    // Tính năng Tier-based booking window
     @Override
     public int getMaxBookingDays(LoyaltyTier tier) {
         LoyaltyConfig config = getTierConfig(tier);
         return config.getBookingWindowDays();
     }
-
+   // Tính năng Priority queue
     @Override
     public int getQueuePriority(LoyaltyTier tier) {
         LoyaltyConfig config = getTierConfig(tier);
         return config.getPriority();
     }
 
+
+    //Tính năng Auto-apply perks (discount)
     @Override
     public int getDiscountPercent(LoyaltyTier tier) {
         LoyaltyConfig config = getTierConfig(tier);
         return config.getDiscountPercent();
     }
+
 }

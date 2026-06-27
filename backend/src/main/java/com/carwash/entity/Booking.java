@@ -100,6 +100,18 @@ public class Booking {
     @Min(value = 0)
     private Integer pointsRedeemed = 0;
 
+    // ===== Lấy độ ưu tiên theo hạng =====
+    @Column(name = "priority", nullable = false)
+    @Builder.Default
+    private Integer priority = 1;  // 1: NORMAL, 2: MEDIUM, 3: HIGH, 4: PLATINUM
+
+    // ===== Applied Perks (quyền lợi đã áp dụng) =====
+    @ElementCollection
+    @CollectionTable(name = "booking_applied_perks", joinColumns = @JoinColumn(name = "booking_id"))
+    @Column(name = "perk_name")
+    @Builder.Default
+    private List<String> appliedPerks = new ArrayList<>();
+
     // ===== Timestamps =====
 
     @CreationTimestamp

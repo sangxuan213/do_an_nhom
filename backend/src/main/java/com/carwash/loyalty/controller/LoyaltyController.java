@@ -1,8 +1,8 @@
-package com.carwash.controller;
+package com.carwash.loyalty.controller;
 
 import com.carwash.dto.response.ApiResponse;
 import com.carwash.dto.response.LoyaltyResponse;
-import com.carwash.service.LoyaltyService;
+import com.carwash.loyalty.service.LoyaltyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
