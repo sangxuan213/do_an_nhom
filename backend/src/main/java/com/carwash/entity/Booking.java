@@ -80,7 +80,7 @@ public class Booking {
     private BookingStatus status = BookingStatus.PENDING;
 
     // muc do uu tien trong hang cho (cang cao cang uu tien)
-    @Column(name = "queue_priority", nullable = false)
+    @Column(name = "queue_priority", nullable = false, columnDefinition = "integer default 0")
     @Builder.Default
     private Integer queuePriority = 0;
 
