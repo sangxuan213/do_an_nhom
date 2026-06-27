@@ -16,8 +16,9 @@ import Header from './components/Header';
 import BookingForm from './components/BookingForm';
 import BookingTracker from './components/BookingTracker';
 import ReviewList from './components/ReviewList';
+import UserProfile from './components/UserProfile';
 
-import { Booking, BookingStatus, Review } from './types';
+import { Booking, BookingStatus, Review, User as UserType } from './types';
 import { INITIAL_REVIEWS } from './data';
 import api from './api';
 
@@ -28,7 +29,7 @@ export default function App() {
   const [newlyCreatedBooking, setNewlyCreatedBooking] = useState<Booking | null>(null);
 
   // User state
-  const [currentUser, setCurrentUser] = useState<{ fullName: string; email: string; phone?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   // Auth Form details
@@ -140,10 +141,17 @@ export default function App() {
     saveReviews(updated);
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setBookings([]);
-    localStorage.removeItem('autoclean_token');
+  const handleLogout = async () => {
+    try {
+      // Gọi API báo Backend huỷ session trong CSDL
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.error('Lỗi khi đăng xuất:', err);
+    } finally {
+      setCurrentUser(null);
+      setBookings([]);
+      localStorage.removeItem('autoclean_token');
+    }
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -453,6 +461,11 @@ export default function App() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB 4: USER PROFILE SECTION */}
+          {activeTab === 'profile' && (
+            <UserProfile currentUser={currentUser} />
           )}
 
         </div>

@@ -61,3 +61,14 @@ export interface Review {
   date: string;
   vehicleType: string;
 }
+
+export interface User {
+  id: number;
+  fullName: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  loyaltyPoints?: number;
+  loyaltyTier?: string;
+  createdAt?: string;
+}

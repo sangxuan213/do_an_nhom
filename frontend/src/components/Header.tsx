@@ -67,11 +67,19 @@ export default function Header({ activeTab, setActiveTab, currentUser, onOpenAut
           <div className="flex items-center gap-3">
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <div className="hidden lg:flex flex-col text-right">
-                  <span className="text-xs font-bold text-slate-800">Chào, {currentUser.fullName} 👋</span>
-                  <span className="text-[9px] text-slate-400 font-medium">{currentUser.email}</span>
+                <div 
+                  className="hidden lg:flex flex-col text-right cursor-pointer group"
+                  onClick={() => setActiveTab('profile')}
+                  title="Xem hồ sơ cá nhân"
+                >
+                  <span className="text-xs font-bold text-slate-800 group-hover:text-sky-600 transition-colors">Chào, {currentUser.fullName} 👋</span>
+                  <span className="text-[9px] text-slate-400 font-medium group-hover:text-sky-500 transition-colors">{currentUser.email}</span>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center font-bold text-xs">
+                <div 
+                  className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-sky-100 transition-colors shadow-sm"
+                  onClick={() => setActiveTab('profile')}
+                  title="Xem hồ sơ cá nhân"
+                >
                   {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <button

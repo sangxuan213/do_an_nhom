@@ -18,4 +18,18 @@ api.interceptors.request.use(
   }
 );
 
+// Add a response interceptor to handle 401 Unauthorized (Session Expired/Revoked)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Xoá token nếu backend báo lỗi 401 (Hết hạn hoặc bị huỷ)
+      localStorage.removeItem('autoclean_token');
+      // Reload lại trang để reset state của App (về trạng thái chưa đăng nhập)
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
