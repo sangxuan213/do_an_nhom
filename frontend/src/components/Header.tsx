@@ -21,7 +21,7 @@ export default function Header({ activeTab, setActiveTab, currentUser, onOpenAut
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex justify-between items-center">
           {/* Logo brand */}
-          <div 
+          <div
             onClick={() => setActiveTab('booking')}
             className="flex items-center gap-2.5 cursor-pointer select-none group"
           >
@@ -52,11 +52,10 @@ export default function Header({ activeTab, setActiveTab, currentUser, onOpenAut
                 key={tab.id}
                 id={`nav-${tab.id}`}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                  activeTab === tab.id
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${activeTab === tab.id
                     ? 'bg-sky-50 text-sky-700 shadow-xs'
                     : 'text-slate-600 hover:text-sky-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -67,11 +66,19 @@ export default function Header({ activeTab, setActiveTab, currentUser, onOpenAut
           <div className="flex items-center gap-3">
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <div className="hidden lg:flex flex-col text-right">
-                  <span className="text-xs font-bold text-slate-800">Chào, {currentUser.fullName} 👋</span>
-                  <span className="text-[9px] text-slate-400 font-medium">{currentUser.email}</span>
+                <div
+                  className="hidden lg:flex flex-col text-right cursor-pointer group"
+                  onClick={() => setActiveTab('profile')}
+                  title="Xem hồ sơ cá nhân"
+                >
+                  <span className="text-xs font-bold text-slate-800 group-hover:text-sky-600 transition-colors">Chào, {currentUser.fullName} 👋</span>
+                  <span className="text-[9px] text-slate-400 font-medium group-hover:text-sky-500 transition-colors">{currentUser.email}</span>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center font-bold text-xs">
+                <div
+                  className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-sky-100 transition-colors shadow-sm"
+                  onClick={() => setActiveTab('profile')}
+                  title="Xem hồ sơ cá nhân"
+                >
                   {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <button
@@ -95,7 +102,7 @@ export default function Header({ activeTab, setActiveTab, currentUser, onOpenAut
               </button>
             )}
 
-            <a 
+            <a
               href="tel:19008899"
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-500 to-sky-600 text-white rounded-xl text-sm font-bold shadow-md shadow-sky-100 hover:from-sky-600 hover:to-sky-700 group hover:-translate-y-0.5 transition-all duration-300"
             >

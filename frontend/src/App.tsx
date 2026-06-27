@@ -5,9 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Sparkles, Award, ShieldCheck, Heart, Coffee, Check, 
-  ChevronRight, Calendar, AlertCircle, RefreshCcw, 
+import {
+  Sparkles, Award, ShieldCheck, Heart, Coffee, Check,
+  ChevronRight, Calendar, AlertCircle, RefreshCcw,
   CheckCircle2, Flame, HelpCircle, Droplets, ArrowRight,
   User, Lock, Mail, Phone, LogOut
 } from 'lucide-react';
@@ -16,8 +16,9 @@ import Header from './components/Header';
 import BookingForm from './components/BookingForm';
 import BookingTracker from './components/BookingTracker';
 import ReviewList from './components/ReviewList';
+import UserProfile from './components/UserProfile';
 
-import { Booking, BookingStatus, Review } from './types';
+import { Booking, BookingStatus, Review, User as UserType } from './types';
 import { INITIAL_REVIEWS } from './data';
 import api from './api';
 
@@ -28,7 +29,7 @@ export default function App() {
   const [newlyCreatedBooking, setNewlyCreatedBooking] = useState<Booking | null>(null);
 
   // User state
-  const [currentUser, setCurrentUser] = useState<{ fullName: string; email: string; phone?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   // Auth Form details
@@ -49,7 +50,7 @@ export default function App() {
           console.error('Failed to fetch user', err);
           handleLogout();
         });
-      
+
       api.get('/bookings')
         .then(res => setBookings(res.data.data))
         .catch(err => console.error('Failed to fetch bookings', err));
@@ -140,10 +141,17 @@ export default function App() {
     saveReviews(updated);
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setBookings([]);
-    localStorage.removeItem('autoclean_token');
+  const handleLogout = async () => {
+    try {
+      // Gọi API báo Backend huỷ session trong CSDL
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.error('Lỗi khi đăng xuất:', err);
+    } finally {
+      setCurrentUser(null);
+      setBookings([]);
+      localStorage.removeItem('autoclean_token');
+    }
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -203,9 +211,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col antialiased">
-      <Header 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         currentUser={currentUser}
         onOpenAuth={() => {
           setAuthMode('signin');
@@ -219,9 +227,9 @@ export default function App() {
       {activeTab === 'booking' && (
         <section className="relative bg-gradient-to-br from-indigo-900 via-sky-900 to-sky-700 py-16 sm:py-24 px-4 overflow-hidden mb-12 border-b border-sky-100 select-none">
           <div className="absolute inset-0 z-0 opacity-40">
-            <img 
-              src="https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=1600" 
-              alt="Sparkling wash car" 
+            <img
+              src="https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=1600"
+              alt="Sparkling wash car"
               className="w-full h-full object-cover filter brightness-[0.7] contrast-125"
               referrerPolicy="no-referrer"
             />
@@ -294,16 +302,16 @@ export default function App() {
 
       {/* Main Container body */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex-1 w-full pb-20">
-        
+
         {/* TAB NAVIGATION PANEL */}
         <div className="space-y-12">
-          
+
           {/* TAB 1: BOOKING & VALUE SECTION */}
           {activeTab === 'booking' && (
             <div id="booking-section" className="space-y-16">
-              <BookingForm 
-                onBookingSubmitted={handleBookingSubmitted} 
-                setActiveTab={setActiveTab} 
+              <BookingForm
+                onBookingSubmitted={handleBookingSubmitted}
+                setActiveTab={setActiveTab}
               />
 
               {/* Value propositions: why choose us */}
@@ -345,8 +353,8 @@ export default function App() {
                   ].map((benefit, bIdx) => {
                     const ExtIcon = benefit.icon;
                     return (
-                      <div 
-                        key={bIdx} 
+                      <div
+                        key={bIdx}
                         className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow duration-300 space-y-4 flex flex-col justify-start"
                       >
                         <div className={`p-3 rounded-xl w-12 h-12 flex items-center justify-center border ${benefit.color}`}>
@@ -362,9 +370,9 @@ export default function App() {
 
               {/* Customer reviews section now appended directly here */}
               <div id="reviews-section" className="pt-12 border-t border-slate-100">
-                <ReviewList 
-                  reviews={reviews} 
-                  onAddReview={handleAddReview} 
+                <ReviewList
+                  reviews={reviews}
+                  onAddReview={handleAddReview}
                 />
               </div>
             </div>
@@ -372,10 +380,10 @@ export default function App() {
 
           {/* TAB 2: TRACKER PANEL */}
           {activeTab === 'tracker' && (
-            <BookingTracker 
-              bookings={bookings} 
-              onUpdateStatus={handleUpdateStatus} 
-              onDeleteBooking={handleDeleteBooking} 
+            <BookingTracker
+              bookings={bookings}
+              onUpdateStatus={handleUpdateStatus}
+              onDeleteBooking={handleDeleteBooking}
             />
           )}
 
@@ -443,7 +451,7 @@ export default function App() {
                     <AlertCircle className="w-4.5 h-4.5 text-sky-500 flex-shrink-0" />
                     Báo giá trên hệ thống là báo giá trọn gói niêm yết, không đòi thêm tiền boa hay nâng khống.
                   </div>
-                  <button 
+                  <button
                     onClick={() => setActiveTab('booking')}
                     className="flex items-center gap-1.5 px-4.5 py-2 bg-sky-500 text-white font-bold rounded-xl hover:bg-sky-600 shadow-md shadow-sky-50 text-xs transition-all"
                   >
@@ -455,13 +463,18 @@ export default function App() {
             </div>
           )}
 
-        </div>
-      </main>
+          {/* TAB 4: USER PROFILE SECTION */}
+          {activeTab === 'profile' && (
+            <UserProfile currentUser={currentUser} />
+          )}
+
+        </div >
+      </main >
 
       {/* FOOTER */}
-      <footer className="bg-slate-900 text-slate-400 text-xs py-12 border-t border-slate-800 mt-auto select-none">
+      < footer className="bg-slate-900 text-slate-400 text-xs py-12 border-t border-slate-800 mt-auto select-none" >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-          
+
           {/* Brand Info */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -482,13 +495,13 @@ export default function App() {
               <button onClick={() => setActiveTab('booking')} className="hover:text-white transition-colors text-left font-medium">Đặt lịch hẹn</button>
               <button onClick={() => setActiveTab('tracker')} className="hover:text-white transition-colors text-left font-medium">Theo dõi xe</button>
               <button onClick={() => setActiveTab('services')} className="hover:text-white transition-colors text-left font-medium">Bảng giá dịch vụ</button>
-              <button 
+              <button
                 onClick={() => {
                   setActiveTab('booking');
                   setTimeout(() => {
                     document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' });
                   }, 150);
-                }} 
+                }}
                 className="hover:text-white transition-colors text-left font-medium"
               >
                 Lời chứng thực/Đánh giá
@@ -514,251 +527,255 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center border-t border-slate-800/80 mt-8 pt-6 text-[10px] text-slate-500">
           © 2026 AutoClean Premium Care Co., Ltd. Tất cả quyền được bảo hộ pháp lý. Built with pure love for car enthusiasts.
         </div>
-      </footer>
+      </footer >
 
       {/* SUCCESS TICKET POPUP BOARD MODAL */}
       <AnimatePresence>
-        {newlyCreatedBooking && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-sky-100 overflow-hidden"
-            >
-              <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-                  <CheckCircle2 className="w-7 h-7 text-white stroke-[3]" />
-                </div>
-                <h3 className="text-xl font-black tracking-tight">Đặt Lịch Thành Công!</h3>
-                <p className="text-sky-100 text-xs mt-1">Cảm ơn xế yêu của bạn đã tìm đến AutoClean</p>
+        {
+          newlyCreatedBooking && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-sky-100 overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <CheckCircle2 className="w-7 h-7 text-white stroke-[3]" />
+                  </div>
+                  <h3 className="text-xl font-black tracking-tight">Đặt Lịch Thành Công!</h3>
+                  <p className="text-sky-100 text-xs mt-1">Cảm ơn xế yêu của bạn đã tìm đến AutoClean</p>
 
-                {/* Ticket code sash */}
-                <div className="bg-white text-indigo-900 font-mono font-black text-sm px-4 py-1.5 rounded-lg shadow-sm inline-block mt-4 border border-indigo-100/50">
-                  CODE: {newlyCreatedBooking.id}
+                  {/* Ticket code sash */}
+                  <div className="bg-white text-indigo-900 font-mono font-black text-sm px-4 py-1.5 rounded-lg shadow-sm inline-block mt-4 border border-indigo-100/50">
+                    CODE: {newlyCreatedBooking.id}
+                  </div>
                 </div>
-              </div>
 
-              {/* Visual simulated boarding pass ticket style */}
-              <div className="p-6 space-y-6">
-                <div className="text-center bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center">
-                  {/* Simulated QR Code block using stylish divs and lucide */}
-                  <div className="w-24 h-24 bg-white p-2 border-2 border-slate-150 rounded-xl relative flex items-center justify-center mb-2 shadow-xs">
-                    <div className="grid grid-cols-4 gap-2 w-full h-full opacity-70">
-                      {[1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1].map((val, idx) => (
-                        <div 
-                          key={idx} 
-                          className={`rounded-xs ${val === 1 ? 'bg-slate-800' : 'bg-transparent'}`} 
-                        />
-                      ))}
+                {/* Visual simulated boarding pass ticket style */}
+                <div className="p-6 space-y-6">
+                  <div className="text-center bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center">
+                    {/* Simulated QR Code block using stylish divs and lucide */}
+                    <div className="w-24 h-24 bg-white p-2 border-2 border-slate-150 rounded-xl relative flex items-center justify-center mb-2 shadow-xs">
+                      <div className="grid grid-cols-4 gap-2 w-full h-full opacity-70">
+                        {[1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1].map((val, idx) => (
+                          <div
+                            key={idx}
+                            className={`rounded-xs ${val === 1 ? 'bg-slate-800' : 'bg-transparent'}`}
+                          />
+                        ))}
+                      </div>
+                      <div className="absolute inset-0 m-auto w-6 h-6 bg-white rounded-md flex items-center justify-center shadow-md">
+                        <Droplets className="w-4.5 h-4.5 text-sky-500" />
+                      </div>
                     </div>
-                    <div className="absolute inset-0 m-auto w-6 h-6 bg-white rounded-md flex items-center justify-center shadow-md">
-                      <Droplets className="w-4.5 h-4.5 text-sky-500" />
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest select-none">Mã QR Check-in Quầy soát</span>
+                  </div>
+
+                  <div className="text-xs space-y-2">
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                      <span className="text-slate-400 font-medium">Khách hàng:</span>
+                      <span className="font-bold text-slate-800">{newlyCreatedBooking.user?.fullName || newlyCreatedBooking.customerName}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                      <span className="text-slate-400 font-medium">Số điện thoại:</span>
+                      <span className="font-bold text-slate-800">
+                        {(newlyCreatedBooking.user?.phone || newlyCreatedBooking.phone || '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                      <span className="text-slate-400 font-medium">BKS Đăng ký:</span>
+                      <span className="font-mono font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+                        {newlyCreatedBooking.licensePlate}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                      <span className="text-slate-400 font-medium">Lịch hẹn rửa:</span>
+                      <span className="font-bold text-slate-800">
+                        {(newlyCreatedBooking.bookingDate || newlyCreatedBooking.date || '').split('-').reverse().join('/')} ({newlyCreatedBooking.timeSlot.split(' - ')[0]})
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-bold text-sm">
+                      <span className="text-slate-700">Tổng phí (Dự kiến):</span>
+                      <span className="text-sky-600 font-black">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(newlyCreatedBooking.totalCost)}
+                      </span>
                     </div>
                   </div>
-                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest select-none">Mã QR Check-in Quầy soát</span>
-                </div>
 
-                <div className="text-xs space-y-2">
-                  <div className="flex justify-between border-b border-slate-100 pb-2">
-                    <span className="text-slate-400 font-medium">Khách hàng:</span>
-                    <span className="font-bold text-slate-800">{newlyCreatedBooking.user?.fullName || newlyCreatedBooking.customerName}</span>
+                  <div className="bg-sky-55 text-sky-800 p-3.5 border border-sky-100 rounded-xl text-[10px] leading-relaxed select-none">
+                    💡 Bạn có thể lưu lại ảnh chụp màn hình vé này hoặc nhớ Số điện thoại để dùng tính năng "Theo dõi đơn hàng" kiểm tra tình trạng hàng chờ tại tiệm.
                   </div>
-                  <div className="flex justify-between border-b border-slate-100 pb-2">
-                    <span className="text-slate-400 font-medium">Số điện thoại:</span>
-                    <span className="font-bold text-slate-800">
-                      {(newlyCreatedBooking.user?.phone || newlyCreatedBooking.phone || '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-100 pb-2">
-                    <span className="text-slate-400 font-medium">BKS Đăng ký:</span>
-                    <span className="font-mono font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
-                      {newlyCreatedBooking.licensePlate}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-100 pb-2">
-                    <span className="text-slate-400 font-medium">Lịch hẹn rửa:</span>
-                    <span className="font-bold text-slate-800">
-                      {(newlyCreatedBooking.bookingDate || newlyCreatedBooking.date || '').split('-').reverse().join('/')} ({newlyCreatedBooking.timeSlot.split(' - ')[0]})
-                    </span>
-                  </div>
-                  <div className="flex justify-between font-bold text-sm">
-                    <span className="text-slate-700">Tổng phí (Dự kiến):</span>
-                    <span className="text-sky-600 font-black">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(newlyCreatedBooking.totalCost)}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="bg-sky-55 text-sky-800 p-3.5 border border-sky-100 rounded-xl text-[10px] leading-relaxed select-none">
-                  💡 Bạn có thể lưu lại ảnh chụp màn hình vé này hoặc nhớ Số điện thoại để dùng tính năng "Theo dõi đơn hàng" kiểm tra tình trạng hàng chờ tại tiệm.
+                  <button
+                    id="btn-close-and-track-ticket"
+                    onClick={handleCloseTicket}
+                    className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-sky-100 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all text-center select-none"
+                  >
+                    Xác Nhận & Theo Dõi Tiến Độ
+                  </button>
                 </div>
-
-                <button
-                  id="btn-close-and-track-ticket"
-                  onClick={handleCloseTicket}
-                  className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-sky-100 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all text-center select-none"
-                >
-                  Xác Nhận & Theo Dõi Tiến Độ
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )
+        }
+      </AnimatePresence >
 
       {/* AUTHENTICATION MODAL (SIGN IN / SIGN UP) */}
       <AnimatePresence>
-        {showAuthModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto w-full h-full">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-sky-100 overflow-hidden"
-            >
-              <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative">
-                <button
-                  type="button"
-                  id="btn-close-auth-modal"
-                  onClick={() => setShowAuthModal(false)}
-                  className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1 w-6 h-6 rounded-full transition-all text-xs flex items-center justify-center font-bold"
-                >
-                  ✕
-                </button>
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-                  <User className="w-6 h-6 text-white stroke-[2]" />
-                </div>
-                <h3 className="text-xl font-black tracking-tight">
-                  {authMode === 'signin' ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Thành Viên'}
-                </h3>
-                <p className="text-sky-100 text-xs mt-1">
-                  {authMode === 'signin' ? 'Đăng nhập để xem và quản lý đơn đặt lịch dịch vụ rửa xe' : 'Trở thành thành viên AutoClean để nhận nhiều ưu đãi'}
-                </p>
-              </div>
-
-              {/* Form body */}
-              <form onSubmit={handleAuthSubmit} className="p-6 space-y-4">
-                {authError && (
-                  <div className="bg-red-50 text-red-600 border border-red-100 p-3 rounded-xl text-xs font-bold flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>{authError}</span>
+        {
+          showAuthModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto w-full h-full">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-sky-100 overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative">
+                  <button
+                    type="button"
+                    id="btn-close-auth-modal"
+                    onClick={() => setShowAuthModal(false)}
+                    className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1 w-6 h-6 rounded-full transition-all text-xs flex items-center justify-center font-bold"
+                  >
+                    ✕
+                  </button>
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <User className="w-6 h-6 text-white stroke-[2]" />
                   </div>
-                )}
+                  <h3 className="text-xl font-black tracking-tight">
+                    {authMode === 'signin' ? 'Đăng Nhập Tài Khoản' : 'Đăng Ký Thành Viên'}
+                  </h3>
+                  <p className="text-sky-100 text-xs mt-1">
+                    {authMode === 'signin' ? 'Đăng nhập để xem và quản lý đơn đặt lịch dịch vụ rửa xe' : 'Trở thành thành viên AutoClean để nhận nhiều ưu đãi'}
+                  </p>
+                </div>
 
-                {authMode === 'signup' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Họ & Tên</label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
-                      <input
-                        id="auth-name-input"
-                        type="text"
-                        required
-                        placeholder="Nguyễn Văn A"
-                        value={authName}
-                        onChange={(e) => setAuthName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
-                      />
+                {/* Form body */}
+                <form onSubmit={handleAuthSubmit} className="p-6 space-y-4">
+                  {authError && (
+                    <div className="bg-red-50 text-red-600 border border-red-100 p-3 rounded-xl text-xs font-bold flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span>{authError}</span>
                     </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 font-bold">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
-                    <input
-                      id="auth-email-input"
-                      type="email"
-                      required
-                      placeholder="email@example.com"
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
-                    />
-                  </div>
-                </div>
-
-                {authMode === 'signup' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Số điện thoại</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
-                      <input
-                        id="auth-phone-input"
-                        type="tel"
-                        placeholder="0987654321"
-                        value={authPhone}
-                        onChange={(e) => setAuthPhone(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 font-bold">Mật khẩu</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
-                    <input
-                      id="auth-password-input"
-                      type="password"
-                      required
-                      placeholder="••••••••"
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  id="btn-submit-auth"
-                  className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-sky-100 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all text-center select-none mt-2"
-                >
-                  {authMode === 'signin' ? 'Đăng Nhập' : 'Đăng Ký Tài Khoản'}
-                </button>
-
-                <div className="text-center pt-2">
-                  {authMode === 'signin' ? (
-                    <p className="text-xs text-slate-500">
-                      Chưa có tài khoản?{' '}
-                      <button
-                        type="button"
-                        id="btn-switch-to-signup"
-                        onClick={() => {
-                          setAuthMode('signup');
-                          setAuthError('');
-                        }}
-                        className="text-sky-600 hover:text-sky-700 font-bold underline focus:outline-none"
-                      >
-                        Đăng ký ngay
-                      </button>
-                    </p>
-                  ) : (
-                    <p className="text-xs text-slate-500">
-                      Đã có tài khoản?{' '}
-                      <button
-                        type="button"
-                        id="btn-switch-to-signin"
-                        onClick={() => {
-                          setAuthMode('signin');
-                          setAuthError('');
-                        }}
-                        className="text-sky-600 hover:text-sky-700 font-bold underline focus:outline-none"
-                      >
-                        Đăng nhập tại đây
-                      </button>
-                    </p>
                   )}
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
+
+                  {authMode === 'signup' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Họ & Tên</label>
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                        <input
+                          id="auth-name-input"
+                          type="text"
+                          required
+                          placeholder="Nguyễn Văn A"
+                          value={authName}
+                          onChange={(e) => setAuthName(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 font-bold">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                      <input
+                        id="auth-email-input"
+                        type="email"
+                        required
+                        placeholder="email@example.com"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {authMode === 'signup' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Số điện thoại</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                        <input
+                          id="auth-phone-input"
+                          type="tel"
+                          placeholder="0987654321"
+                          value={authPhone}
+                          onChange={(e) => setAuthPhone(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 font-bold">Mật khẩu</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                      <input
+                        id="auth-password-input"
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    id="btn-submit-auth"
+                    className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-sky-100 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all text-center select-none mt-2"
+                  >
+                    {authMode === 'signin' ? 'Đăng Nhập' : 'Đăng Ký Tài Khoản'}
+                  </button>
+
+                  <div className="text-center pt-2">
+                    {authMode === 'signin' ? (
+                      <p className="text-xs text-slate-500">
+                        Chưa có tài khoản?{' '}
+                        <button
+                          type="button"
+                          id="btn-switch-to-signup"
+                          onClick={() => {
+                            setAuthMode('signup');
+                            setAuthError('');
+                          }}
+                          className="text-sky-600 hover:text-sky-700 font-bold underline focus:outline-none"
+                        >
+                          Đăng ký ngay
+                        </button>
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-500">
+                        Đã có tài khoản?{' '}
+                        <button
+                          type="button"
+                          id="btn-switch-to-signin"
+                          onClick={() => {
+                            setAuthMode('signin');
+                            setAuthError('');
+                          }}
+                          className="text-sky-600 hover:text-sky-700 font-bold underline focus:outline-none"
+                        >
+                          Đăng nhập tại đây
+                        </button>
+                      </p>
+                    )}
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )
+        }
+      </AnimatePresence >
+    </div >
   );
 }
