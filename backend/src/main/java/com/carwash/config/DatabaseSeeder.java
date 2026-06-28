@@ -32,6 +32,17 @@ public class DatabaseSeeder implements CommandLineRunner {
         seedServicePackages();
         seedMachines();
     }
+    private void seedTierConfigs() {
+        if (tierConfigRepository.count() == 0) {
+            List<TierConfig> configs = List.of(
+                    TierConfig.builder().tier(LoyaltyTier.BRONZE).minPoints(0).pointRateMultiplier(1.0).perks("Tiêu chuẩn").build(),
+                    TierConfig.builder().tier(LoyaltyTier.SILVER).minPoints(500).pointRateMultiplier(1.2).perks("Giảm 5%").build(),
+                    TierConfig.builder().tier(LoyaltyTier.GOLD).minPoints(1500).pointRateMultiplier(1.5).perks("Giảm 10%, Ưu tiên").build()
+            );
+            tierConfigRepository.saveAll(configs);
+        }
+    }
+
 
     private void seedUsers() {
         if (!userRepository.existsByEmail("admin@carwash.com")) {
