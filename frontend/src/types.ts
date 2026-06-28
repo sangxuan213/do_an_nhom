@@ -61,3 +61,88 @@ export interface Review {
   date: string;
   vehicleType: string;
 }
+
+// ===== Admin Types =====
+
+export enum AdminBookingStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+export enum MachineState {
+  AVAILABLE = 'AVAILABLE',
+  IN_USE = 'IN_USE',
+  MAINTENANCE = 'MAINTENANCE'
+}
+
+export enum LoyaltyTier {
+  BRONZE = 'BRONZE',
+  SILVER = 'SILVER',
+  GOLD = 'GOLD'
+}
+
+export enum Role {
+  ROLE_CUSTOMER = 'ROLE_CUSTOMER',
+  ROLE_ADMIN = 'ROLE_ADMIN'
+}
+
+export interface AdminUser {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: Role;
+  loyaltyPoints: number;
+  loyaltyTier: LoyaltyTier;
+  createdAt: string;
+}
+
+export interface ServicePackage {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  durationMinutes: number;
+  pointsEarned: number;
+  active: boolean;
+}
+
+export interface AdminBooking {
+  id: number;
+  user: AdminUser;
+  servicePackage: ServicePackage;
+  bookingDate: string;
+  timeSlot: string;
+  status: AdminBookingStatus;
+  pointsEarned: number;
+  pointsRedeemed: number;
+  discountApplied: number;
+  createdAt: string;
+  licensePlate: string;
+  vehicleType: VehicleType;
+  notes: string;
+  totalCost: number;
+  addOnIds: string[];
+}
+
+export interface Machine {
+  id: number;
+  machineName: string;
+  state: MachineState;
+  currentBookingId: number | null;
+  lastMaintenanceDate: string;
+  updatedAt: string;
+}
+
+export interface LoyaltyInfo {
+  userId: number;
+  fullName: string;
+  totalPoints: number;
+  currentTier: LoyaltyTier;
+  nextTier: LoyaltyTier;
+  pointsToNextTier: number;
+  totalWashes: number;
+  redeemablePoints: number;
+}

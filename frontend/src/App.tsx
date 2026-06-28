@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, Award, ShieldCheck, Heart, Coffee, Check, 
@@ -17,11 +18,19 @@ import BookingForm from './components/BookingForm';
 import BookingTracker from './components/BookingTracker';
 import ReviewList from './components/ReviewList';
 
+// Admin imports
+import AdminLayout from './components/admin/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import BookingManagement from './pages/admin/BookingManagement';
+import UserManagement from './pages/admin/UserManagement';
+import MachineManagement from './pages/admin/MachineManagement';
+import ServiceManagement from './pages/admin/ServiceManagement';
+
 import { Booking, BookingStatus, Review } from './types';
 import { INITIAL_REVIEWS } from './data';
 import api from './api';
 
-export default function App() {
+function CustomerApp() {
   const [activeTab, setActiveTab] = useState<string>('booking');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -760,5 +769,23 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      {/* Admin routes */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="bookings" element={<BookingManagement />} />
+        <Route path="users" element={<UserManagement />} />
+        <Route path="machines" element={<MachineManagement />} />
+        <Route path="services" element={<ServiceManagement />} />
+      </Route>
+
+      {/* Customer routes — all other paths */}
+      <Route path="*" element={<CustomerApp />} />
+    </Routes>
   );
 }

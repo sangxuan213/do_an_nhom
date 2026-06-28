@@ -2,12 +2,14 @@ package com.carwash.config;
 
 import com.carwash.entity.MachineStatus;
 import com.carwash.entity.ServicePackage;
+import com.carwash.entity.TierConfig;
 import com.carwash.entity.User;
 import com.carwash.enums.LoyaltyTier;
 import com.carwash.enums.MachineState;
 import com.carwash.enums.Role;
 import com.carwash.repository.MachineStatusRepository;
 import com.carwash.repository.ServicePackageRepository;
+import com.carwash.repository.TierConfigRepository;
 import com.carwash.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -24,14 +26,17 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final ServicePackageRepository servicePackageRepository;
     private final MachineStatusRepository machineStatusRepository;
+    private final TierConfigRepository tierConfigRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
+        seedTierConfigs();
         seedUsers();
         seedServicePackages();
         seedMachines();
     }
+
     private void seedTierConfigs() {
         if (tierConfigRepository.count() == 0) {
             List<TierConfig> configs = List.of(
@@ -42,7 +47,6 @@ public class DatabaseSeeder implements CommandLineRunner {
             tierConfigRepository.saveAll(configs);
         }
     }
-
 
     private void seedUsers() {
         if (!userRepository.existsByEmail("admin@carwash.com")) {

@@ -9,17 +9,15 @@ import com.carwash.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 @Service
 @RequiredArgsConstructor
 public class LoyaltyService {
 
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
+    private final AdminTierConfigService tierConfigService;
 
-    // Tier thresholds
-    private static final int SILVER_THRESHOLD = 500;
-    private static final int GOLD_THRESHOLD = 1500;
+
 
     @Transactional
     public void awardPoints(Long userId, int points) {
@@ -77,8 +75,8 @@ public class LoyaltyService {
     }
 
     private LoyaltyTier calculateTier(int points) {
-        if (points >= GOLD_THRESHOLD) return LoyaltyTier.GOLD;
-        if (points >= SILVER_THRESHOLD) return LoyaltyTier.SILVER;
+        if (points >= tierConfigService.getMinPointsForTier(LoyaltyTier.GOLD)) return LoyaltyTier.GOLD;
+        if (points >= tierConfigService.getMinPointsForTier(LoyaltyTier.SILVER)) return LoyaltyTier.SILVER;
         return LoyaltyTier.BRONZE;
     }
 
@@ -92,8 +90,8 @@ public class LoyaltyService {
 
     private int calculatePointsToNextTier(int currentPoints, LoyaltyTier currentTier) {
         return switch (currentTier) {
-            case BRONZE -> SILVER_THRESHOLD - currentPoints;
-            case SILVER -> GOLD_THRESHOLD - currentPoints;
+            case BRONZE -> tierConfigService.getMinPointsForTier(LoyaltyTier.SILVER) - currentPoints;
+            case SILVER -> tierConfigService.getMinPointsForTier(LoyaltyTier.GOLD) - currentPoints;
             case GOLD -> 0; // Already max
         };
     }
