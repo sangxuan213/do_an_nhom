@@ -37,7 +37,7 @@ function CustomerApp() {
   const [newlyCreatedBooking, setNewlyCreatedBooking] = useState<Booking | null>(null);
 
   // User state
-  const [currentUser, setCurrentUser] = useState<{ fullName: string; email: string; phone?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ fullName: string; email: string; phone?: string; role?: string } | null>(null);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   // Auth Form details

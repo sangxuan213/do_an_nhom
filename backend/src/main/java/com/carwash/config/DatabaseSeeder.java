@@ -40,10 +40,12 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void seedTierConfigs() {
         if (tierConfigRepository.count() == 0) {
             List<TierConfig> configs = List.of(
-                    TierConfig.builder().tier(LoyaltyTier.BRONZE).minPoints(0).pointRateMultiplier(1.0).perks("Tiêu chuẩn").build(),
-                    TierConfig.builder().tier(LoyaltyTier.SILVER).minPoints(500).pointRateMultiplier(1.2).perks("Giảm 5%").build(),
-                    TierConfig.builder().tier(LoyaltyTier.GOLD).minPoints(1500).pointRateMultiplier(1.5).perks("Giảm 10%, Ưu tiên").build()
-            );
+                    TierConfig.builder().tier(LoyaltyTier.BRONZE).minPoints(0).pointRateMultiplier(1.0)
+                            .perks("Tiêu chuẩn").build(),
+                    TierConfig.builder().tier(LoyaltyTier.SILVER).minPoints(500).pointRateMultiplier(1.2)
+                            .perks("Giảm 5%").build(),
+                    TierConfig.builder().tier(LoyaltyTier.GOLD).minPoints(1500).pointRateMultiplier(1.5)
+                            .perks("Giảm 10%, Ưu tiên").build());
             tierConfigRepository.saveAll(configs);
         }
     }
@@ -97,13 +99,13 @@ public class DatabaseSeeder implements CommandLineRunner {
                             .build(),
                     ServicePackage.builder()
                             .name("VIP Detailing")
-                            .description("Full interior/exterior detailing, leather treatment, and ceramic coating touch-up.")
+                            .description(
+                                    "Full interior/exterior detailing, leather treatment, and ceramic coating touch-up.")
                             .price(new BigDecimal("80.00"))
                             .durationMinutes(120)
                             .pointsEarned(100)
                             .active(true)
-                            .build()
-            );
+                            .build());
             servicePackageRepository.saveAll(packages);
         }
     }
@@ -114,8 +116,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     MachineStatus.builder().machineName("Wash Bay 1").state(MachineState.AVAILABLE).build(),
                     MachineStatus.builder().machineName("Wash Bay 2").state(MachineState.AVAILABLE).build(),
                     MachineStatus.builder().machineName("Detailing Station A").state(MachineState.AVAILABLE).build(),
-                    MachineStatus.builder().machineName("Detailing Station B").state(MachineState.MAINTENANCE).build()
-            );
+                    MachineStatus.builder().machineName("Detailing Station B").state(MachineState.MAINTENANCE).build());
             machineStatusRepository.saveAll(machines);
         }
     }
