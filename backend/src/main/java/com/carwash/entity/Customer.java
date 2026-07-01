@@ -14,9 +14,9 @@ public class Customer {
     private Long id;
     @Column(nullable = false, length = 100)
     private String name;
-    @Column(nullable = false, length = 20)
+    @Column(unique = true, length = 20)
     private String phone;
-    @Column(name = "license_plate", length = 20)
+    @Column(name = "license_plate", unique = true, length = 20)
     private String licensePlate;
     // 1-1 với User
     @OneToOne(fetch = FetchType.LAZY)
