@@ -105,6 +105,20 @@ public class Booking {
     @Builder.Default
     private Integer priority = 1;  // 1: NORMAL, 2: MEDIUM, 3: HIGH, 4: PLATINUM
 
+    // ===== Payment Info =====
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 20)
+    private com.carwash.enums.PaymentMethod paymentMethod;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", length = 20)
+    @Builder.Default
+    private com.carwash.enums.PaymentStatus paymentStatus = com.carwash.enums.PaymentStatus.UNPAID;
+
+    @Column(name = "payos_order_code")
+    private Long payosOrderCode;
+
     // ===== Applied Perks (quyền lợi đã áp dụng) =====
     @ElementCollection
     @CollectionTable(name = "booking_applied_perks", joinColumns = @JoinColumn(name = "booking_id"))

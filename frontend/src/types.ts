@@ -51,6 +51,9 @@ export interface Booking {
   status: BookingStatus;
   totalCost: number;
   createdAt: string;
+  paymentMethod?: 'CASH' | 'TRANSFER';
+  paymentStatus?: 'UNPAID' | 'PAID' | 'CANCELLED';
+  checkoutUrl?: string;
 }
 
 export interface Review {

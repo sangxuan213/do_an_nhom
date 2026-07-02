@@ -10,7 +10,8 @@ import {
   Sparkles, Award, ShieldCheck, Heart, Coffee, Check,
   ChevronRight, Calendar, AlertCircle, RefreshCcw,
   CheckCircle2, Flame, HelpCircle, Droplets, ArrowRight,
-  User, Lock, Mail, Phone, LogOut
+  User, Lock, Mail, Phone, LogOut,
+  QrCode, Wallet, CreditCard, Copy, ChevronLeft
 } from 'lucide-react';
 
 import Header from './components/Header';
@@ -36,6 +37,9 @@ function CustomerApp() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [newlyCreatedBooking, setNewlyCreatedBooking] = useState<Booking | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState<boolean>(false);
+  const [paymentDetails, setPaymentDetails] = useState<any>(null);
 
   // User state
   const [currentUser, setCurrentUser] = useState<{ fullName: string; email: string; phone?: string; role?: string } | null>(null);
@@ -77,11 +81,45 @@ function CustomerApp() {
       } catch (err) {
         console.error('Lỗi phân tích cú pháp reviews', err);
       }
-    } else {
-      setReviews(INITIAL_REVIEWS);
-      localStorage.setItem('autoclean_reviews', JSON.stringify(INITIAL_REVIEWS));
+    }
+
+    // Parse URL payment status parameters
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const bId = params.get('bookingId');
+    if (payment && bId) {
+      if (payment === 'success') {
+        alert(`Thanh toán chuyển khoản thành công cho lịch hẹn #${bId}!`);
+        setActiveTab('tracker');
+      } else if (payment === 'cancel') {
+        alert(`Thanh toán cho lịch hẹn #${bId} đã bị hủy.`);
+        setActiveTab('tracker');
+      }
+      // Clean up URL query parameters to avoid showing alert again on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
+
+  // Poll payment status for newly created booking if transfer method is selected
+  useEffect(() => {
+    if (paymentMethod !== 'transfer' || !newlyCreatedBooking) return;
+
+    let intervalId = setInterval(async () => {
+      try {
+        const res = await api.get(`/bookings/${newlyCreatedBooking.id}`);
+        const updatedBooking = res.data.data;
+        if (updatedBooking.paymentStatus === 'PAID' || updatedBooking.status === 'CONFIRMED') {
+          clearInterval(intervalId);
+          alert(`AutoClean đã nhận được tiền chuyển khoản của bạn cho lịch đặt #${newlyCreatedBooking.id}! Lịch hẹn của bạn đã được xác nhận.`);
+          handleCloseTicket();
+        }
+      } catch (err) {
+        console.error('Lỗi khi kiểm tra trạng thái thanh toán:', err);
+      }
+    }, 3000); // Check every 3 seconds
+
+    return () => clearInterval(intervalId);
+  }, [paymentMethod, newlyCreatedBooking]);
 
   // Sync reviews to LocalStorage on updates (keep as is since we didn't add Review API)
   const saveReviews = (updated: Review[]) => {
@@ -215,6 +253,8 @@ function CustomerApp() {
 
   const handleCloseTicket = () => {
     setNewlyCreatedBooking(null);
+    setPaymentMethod(null);
+    setPaymentDetails(null);
     setActiveTab('tracker'); // Jump to tracker so user can see it in action
   };
 
@@ -321,6 +361,7 @@ function CustomerApp() {
               <BookingForm
                 onBookingSubmitted={handleBookingSubmitted}
                 setActiveTab={setActiveTab}
+                currentUser={currentUser}
               />
 
               {/* Value propositions: why choose us */}
@@ -547,84 +588,283 @@ function CustomerApp() {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-sky-100 overflow-hidden"
+                                className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-sky-100 overflow-hidden max-h-[90vh] flex flex-col"
               >
-                <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-                    <CheckCircle2 className="w-7 h-7 text-white stroke-[3]" />
-                  </div>
-                  <h3 className="text-xl font-black tracking-tight">Đặt Lịch Thành Công!</h3>
-                  <p className="text-sky-100 text-xs mt-1">Cảm ơn xế yêu của bạn đã tìm đến AutoClean</p>
+                {!paymentMethod ? (
+                  <>
+                    <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative flex-shrink-0">
+                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                        <CheckCircle2 className="w-7 h-7 text-white stroke-[3]" />
+                      </div>
+                      <h3 className="text-xl font-black tracking-tight">Đặt Lịch Thành Công!</h3>
+                      <p className="text-sky-100 text-xs mt-1">Cảm ơn xế yêu của bạn đã tìm đến AutoClean</p>
+                    </div>
 
-                  {/* Ticket code sash */}
-                  <div className="bg-white text-indigo-900 font-mono font-black text-sm px-4 py-1.5 rounded-lg shadow-sm inline-block mt-4 border border-indigo-100/50">
-                    CODE: {newlyCreatedBooking.id}
-                  </div>
-                </div>
+                    <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                      <div className="text-center">
+                        <h4 className="text-sm font-bold text-slate-700">Chọn Phương Thức Thanh Toán</h4>
+                        <p className="text-slate-400 text-xs mt-1">Vui lòng lựa chọn cách thanh toán cho lịch đặt của bạn</p>
+                      </div>
 
-                {/* Visual simulated boarding pass ticket style */}
-                <div className="p-6 space-y-6">
-                  <div className="text-center bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center">
-                    {/* Simulated QR Code block using stylish divs and lucide */}
-                    <div className="w-24 h-24 bg-white p-2 border-2 border-slate-150 rounded-xl relative flex items-center justify-center mb-2 shadow-xs">
-                      <div className="grid grid-cols-4 gap-2 w-full h-full opacity-70">
-                        {[1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1].map((val, idx) => (
-                          <div
-                            key={idx}
-                            className={`rounded-xs ${val === 1 ? 'bg-slate-800' : 'bg-transparent'}`}
+                      <div className="space-y-3">
+                        {/* Option 1: Cash */}
+                        <button
+                          type="button"
+                          disabled={paymentLoading}
+                          onClick={async () => {
+                            try {
+                              setPaymentLoading(true);
+                              await api.post('/payments/create-payment-link', {
+                                bookingId: newlyCreatedBooking.id,
+                                paymentMethod: 'CASH'
+                              });
+                              setPaymentMethod('cash');
+                            } catch (err) {
+                              console.error('Error setting cash payment:', err);
+                            } finally {
+                              setPaymentLoading(false);
+                            }
+                          }}
+                          className="w-full flex items-start gap-4 p-4 border border-slate-200 hover:border-sky-500 hover:bg-sky-50/30 rounded-2xl transition-all text-left group disabled:opacity-50"
+                        >
+                          <div className="p-3 bg-sky-50 text-sky-600 rounded-xl group-hover:bg-sky-100 transition-colors">
+                            <Wallet className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-800 text-sm block">Thanh toán Tiền mặt</span>
+                            <span className="text-slate-400 text-[11px] font-medium leading-relaxed block mt-0.5">
+                              Thanh toán tại quầy bằng tiền mặt hoặc quẹt thẻ sau khi rửa xe xong.
+                            </span>
+                          </div>
+                        </button>
+
+                        {/* Option 2: Bank Transfer via SePay */}
+                        <button
+                          type="button"
+                          disabled={paymentLoading}
+                          onClick={async () => {
+                            try {
+                              setPaymentLoading(true);
+                              const res = await api.post('/payments/create-payment-link', {
+                                bookingId: newlyCreatedBooking.id,
+                                paymentMethod: 'TRANSFER'
+                              });
+                              setPaymentDetails(res.data.data);
+                              setPaymentMethod('transfer');
+                            } catch (err) {
+                              console.error('Error creating SePay payment details:', err);
+                              alert('Không thể tạo thông tin thanh toán. Vui lòng thử lại!');
+                            } finally {
+                              setPaymentLoading(false);
+                            }
+                          }}
+                          className="w-full flex items-start gap-4 p-4 border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/30 rounded-2xl transition-all text-left group disabled:opacity-50"
+                        >
+                          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-100 transition-colors">
+                            <QrCode className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-800 text-sm block">Chuyển khoản / Quét mã QR</span>
+                            <span className="text-slate-400 text-[11px] font-medium leading-relaxed block mt-0.5">
+                              Thanh toán trực tuyến qua cổng PayOS - Quét mã VietQR 24/7.
+                            </span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                ) : paymentMethod === 'cash' ? (
+                  <>
+                    <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative flex-shrink-0">
+                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                        <CheckCircle2 className="w-7 h-7 text-white stroke-[3]" />
+                      </div>
+                      <h3 className="text-xl font-black tracking-tight">Vé Đặt Lịch Rửa Xe</h3>
+                      <p className="text-sky-100 text-xs mt-1">Phương thức: Tiền mặt tại quầy</p>
+
+                      {/* Ticket code sash */}
+                      <div className="bg-white text-indigo-900 font-mono font-black text-sm px-4 py-1.5 rounded-lg shadow-sm inline-block mt-4 border border-indigo-100/50">
+                        CODE: {newlyCreatedBooking.id}
+                      </div>
+                    </div>
+
+                    {/* Visual simulated boarding pass ticket style */}
+                    <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                      <div className="text-center bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center">
+                        <div className="w-28 h-28 bg-white p-2 border border-slate-200 rounded-xl relative flex items-center justify-center mb-2 shadow-xs">
+                          <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=AUTOCLEAN-CHECKIN-${newlyCreatedBooking.id}`}
+                            alt="Check-in QR"
+                            className="w-full h-full object-contain"
                           />
-                        ))}
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest select-none">Mã QR Check-in Quầy soát</span>
                       </div>
-                      <div className="absolute inset-0 m-auto w-6 h-6 bg-white rounded-md flex items-center justify-center shadow-md">
-                        <Droplets className="w-4.5 h-4.5 text-sky-500" />
+
+                      <div className="text-xs space-y-2">
+                        <div className="flex justify-between border-b border-slate-100 pb-2">
+                          <span className="text-slate-400 font-medium">Khách hàng:</span>
+                          <span className="font-bold text-slate-800">{newlyCreatedBooking.user?.fullName || newlyCreatedBooking.customerName}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-2">
+                          <span className="text-slate-400 font-medium">Số điện thoại:</span>
+                          <span className="font-bold text-slate-800">
+                            {(newlyCreatedBooking.user?.phone || newlyCreatedBooking.phone || '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-2">
+                          <span className="text-slate-400 font-medium">BKS Đăng ký:</span>
+                          <span className="font-mono font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
+                            {newlyCreatedBooking.licensePlate}
+                          </span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-2">
+                          <span className="text-slate-400 font-medium">Lịch hẹn rửa:</span>
+                          <span className="font-bold text-slate-800">
+                            {(newlyCreatedBooking.bookingDate || newlyCreatedBooking.date || '').split('-').reverse().join('/')} ({newlyCreatedBooking.timeSlot.split(' - ')[0]})
+                          </span>
+                        </div>
+                        <div className="flex justify-between font-bold text-sm">
+                          <span className="text-slate-700">Tổng phí:</span>
+                          <span className="text-sky-600 font-black">
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(newlyCreatedBooking.totalCost)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="bg-sky-50 text-sky-800 p-3.5 border border-sky-100 rounded-xl text-[10px] leading-relaxed select-none">
+                        💡 Bạn có thể lưu lại ảnh chụp màn hình vé này hoặc nhớ Số điện thoại để dùng tính năng "Theo dõi đơn hàng" kiểm tra tình trạng hàng chờ tại tiệm.
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod(null)}
+                          className="px-4 py-3 border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-1"
+                        >
+                          <ChevronLeft className="w-4 h-4" /> Quay lại
+                        </button>
+                        <button
+                          type="button"
+                          id="btn-close-and-track-ticket"
+                          onClick={handleCloseTicket}
+                          className="flex-1 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-sky-100 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all text-center select-none"
+                        >
+                          Xác Nhận & Theo Dõi Tiến Độ
+                        </button>
                       </div>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest select-none">Mã QR Check-in Quầy soát</span>
-                  </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative flex-shrink-0">
+                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                        <QrCode className="w-7 h-7 text-white" />
+                      </div>
+                      <h3 className="text-xl font-black tracking-tight">Thanh Toán Chuyển Khoản</h3>
+                      <p className="text-sky-100 text-xs mt-1">Quét mã QR bằng ứng dụng ngân hàng của bạn</p>
 
-                  <div className="text-xs space-y-2">
-                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                      <span className="text-slate-400 font-medium">Khách hàng:</span>
-                      <span className="font-bold text-slate-800">{newlyCreatedBooking.user?.fullName || newlyCreatedBooking.customerName}</span>
+                      {/* Ticket code sash */}
+                      <div className="bg-white text-indigo-900 font-mono font-black text-sm px-4 py-1.5 rounded-lg shadow-sm inline-block mt-4 border border-indigo-100/50">
+                        CODE: {newlyCreatedBooking.id}
+                      </div>
                     </div>
-                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                      <span className="text-slate-400 font-medium">Số điện thoại:</span>
-                      <span className="font-bold text-slate-800">
-                        {(newlyCreatedBooking.user?.phone || newlyCreatedBooking.phone || '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                      <span className="text-slate-400 font-medium">BKS Đăng ký:</span>
-                      <span className="font-mono font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded border border-sky-100">
-                        {newlyCreatedBooking.licensePlate}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                      <span className="text-slate-400 font-medium">Lịch hẹn rửa:</span>
-                      <span className="font-bold text-slate-800">
-                        {(newlyCreatedBooking.bookingDate || newlyCreatedBooking.date || '').split('-').reverse().join('/')} ({newlyCreatedBooking.timeSlot.split(' - ')[0]})
-                      </span>
-                    </div>
-                    <div className="flex justify-between font-bold text-sm">
-                      <span className="text-slate-700">Tổng phí (Dự kiến):</span>
-                      <span className="text-sky-600 font-black">
-                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(newlyCreatedBooking.totalCost)}
-                      </span>
-                    </div>
-                  </div>
 
-                  <div className="bg-sky-55 text-sky-800 p-3.5 border border-sky-100 rounded-xl text-[10px] leading-relaxed select-none">
-                    💡 Bạn có thể lưu lại ảnh chụp màn hình vé này hoặc nhớ Số điện thoại để dùng tính năng "Theo dõi đơn hàng" kiểm tra tình trạng hàng chờ tại tiệm.
-                  </div>
+                    <div className="p-6 space-y-5 overflow-y-auto flex-1">
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-4">
+                        <div className="flex flex-col items-center border-b border-dashed border-slate-200 pb-4">
+                          <div className="w-40 h-40 bg-white p-3 border border-slate-200 rounded-2xl shadow-xs relative flex items-center justify-center">
+                            {paymentDetails?.qrCode ? (
+                              <img 
+                                src={paymentDetails.qrCode}
+                                alt="VietQR Transfer"
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <div className="text-slate-400 text-xs flex flex-col items-center gap-2">
+                                <RefreshCcw className="w-6 h-6 animate-spin text-sky-500" />
+                                Đang tải QR...
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mt-2">MÃ VIETQR CHUYỂN KHOẢN 24/7</span>
+                        </div>
 
-                  <button
-                    id="btn-close-and-track-ticket"
-                    onClick={handleCloseTicket}
-                    className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-sky-100 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all text-center select-none"
-                  >
-                    Xác Nhận & Theo Dõi Tiến Độ
-                  </button>
-                </div>
+                        <div className="text-xs space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 font-medium">Ngân hàng:</span>
+                            <span className="font-extrabold text-slate-800">MB BANK (Ngân hàng Quân Đội)</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 font-medium">Số tài khoản:</span>
+                            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                              <span>{paymentDetails?.accountNo || '09455666666'}</span>
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(paymentDetails?.accountNo || '09455666666');
+                                  alert('Đã sao chép số tài khoản');
+                                }}
+                                className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                                title="Sao chép"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 font-medium">Chủ tài khoản:</span>
+                            <span className="font-extrabold text-slate-800">{paymentDetails?.accountName || 'NGUYEN KIM HOANG'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 font-medium">Số tiền:</span>
+                            <span className="font-black text-sky-600">
+                              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(paymentDetails?.amount || newlyCreatedBooking.totalCost)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 font-medium">Nội dung chuyển khoản:</span>
+                            <div className="flex items-center gap-1.5 font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                              <span>{paymentDetails?.description || `AUTOCLEAN${newlyCreatedBooking.id}`}</span>
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(paymentDetails?.description || `AUTOCLEAN${newlyCreatedBooking.id}`);
+                                  alert('Đã sao chép nội dung');
+                                }}
+                                className="p-1 hover:bg-indigo-100 rounded text-indigo-400 hover:text-indigo-600 transition-colors"
+                                title="Sao chép"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-amber-50 text-amber-800 p-3 border border-amber-100 rounded-xl text-[10px] leading-relaxed select-none text-center font-medium">
+                        ⚠️ Bạn cần chuyển khoản chính xác **Số tiền** và **Nội dung** ở trên để SePay tự động nhận diện giao dịch.
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod(null)}
+                          className="px-4 py-3 border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-1"
+                        >
+                          <ChevronLeft className="w-4 h-4" /> Quay lại
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCloseTicket}
+                          className="flex-1 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-sky-100 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all text-center select-none"
+                        >
+                          Tôi Đã Chuyển Khoản
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </motion.div>
             </div>
           )

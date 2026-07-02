@@ -7,6 +7,8 @@ import com.carwash.entity.User;
 import com.carwash.enums.LoyaltyTier;
 import com.carwash.enums.MachineState;
 import com.carwash.enums.Role;
+import com.carwash.entity.LoyaltyConfig;
+import com.carwash.repository.LoyaltyConfigRepository;
 import com.carwash.repository.MachineStatusRepository;
 import com.carwash.repository.ServicePackageRepository;
 import com.carwash.repository.TierConfigRepository;
@@ -27,14 +29,64 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final ServicePackageRepository servicePackageRepository;
     private final MachineStatusRepository machineStatusRepository;
     private final TierConfigRepository tierConfigRepository;
+    private final LoyaltyConfigRepository loyaltyConfigRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
         seedTierConfigs();
+        seedLoyaltyConfigs();
         seedUsers();
         seedServicePackages();
         seedMachines();
+    }
+
+    private void seedLoyaltyConfigs() {
+        if (loyaltyConfigRepository.count() == 0) {
+            List<LoyaltyConfig> configs = List.of(
+                    LoyaltyConfig.builder()
+                            .tier("BRONZE")
+                            .minPoints(0)
+                            .minSpent(BigDecimal.ZERO)
+                            .minVisits(0)
+                            .discountPercent(5)
+                            .bookingWindowDays(7)
+                            .benefits("5% giảm giá, Tích điểm đổi quà")
+                            .priority(1)
+                            .build(),
+                    LoyaltyConfig.builder()
+                            .tier("SILVER")
+                            .minPoints(500)
+                            .minSpent(new BigDecimal("50.00"))
+                            .minVisits(5)
+                            .discountPercent(10)
+                            .bookingWindowDays(10)
+                            .benefits("10% giảm giá, Đặt lịch trước 10 ngày, Ưu tiên nhẹ")
+                            .priority(2)
+                            .build(),
+                    LoyaltyConfig.builder()
+                            .tier("GOLD")
+                            .minPoints(1500)
+                            .minSpent(new BigDecimal("150.00"))
+                            .minVisits(15)
+                            .discountPercent(15)
+                            .bookingWindowDays(12)
+                            .benefits("15% giảm giá, Đặt lịch trước 12 ngày, Ưu tiên cao, Free nước uống")
+                            .priority(3)
+                            .build(),
+                    LoyaltyConfig.builder()
+                            .tier("PLATINUM")
+                            .minPoints(3000)
+                            .minSpent(new BigDecimal("300.00"))
+                            .minVisits(30)
+                            .discountPercent(20)
+                            .bookingWindowDays(14)
+                            .benefits("20% giảm giá, Đặt lịch trước 14 ngày, Ưu tiên cao nhất, Free rửa xe")
+                            .priority(4)
+                            .build()
+            );
+            loyaltyConfigRepository.saveAll(configs);
+        }
     }
 
     private void seedTierConfigs() {

@@ -38,3 +38,11 @@ logging:
   level:
     com.carwash: DEBUG
     org.springframework.security: DEBUG
+
+# SePay Payment Configuration (Sandbox / Testmode)
+sepay:
+  webhook-token: "YOUR_SEPAY_WEBHOOK_TOKEN"
+  bank-id: "MBBANK"
+  account-no: "016102004"
+  account-name: "NGUYEN KIM HOANG"
+  auto-tunnel: true
