@@ -61,7 +61,6 @@ export interface Review {
   date: string;
   vehicleType: string;
 }
-
 // ===== Admin Types =====
 
 export enum AdminBookingStatus {
@@ -145,4 +144,15 @@ export interface LoyaltyInfo {
   pointsToNextTier: number;
   totalWashes: number;
   redeemablePoints: number;
+}
+export interface User {
+  id: number;
+  fullName: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  loyaltyPoints?: number;
+  loyaltyTier?: string;
+  createdAt?: string;
+
 }
