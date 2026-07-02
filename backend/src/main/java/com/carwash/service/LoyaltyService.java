@@ -11,18 +11,13 @@ import com.carwash.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.carwash.entity.LoyaltyConfig;
-import com.carwash.repository.LoyaltyConfigRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.carwash.repository.LoyaltyTransactionRepository;
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class LoyaltyService implements ILoyaltyService {
 
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
+    private final AdminTierConfigService tierConfigService;
     private final LoyaltyTransactionRepository transactionRepository;
 
     // Tier thresholds

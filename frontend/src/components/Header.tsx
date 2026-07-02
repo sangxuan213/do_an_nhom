@@ -4,12 +4,13 @@
  */
 
 import React from 'react';
-import { Droplets, Phone, Sparkles, LogOut, User } from 'lucide-react';
+import { Droplets, Phone, Sparkles, LogOut, User, LayoutDashboard } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  currentUser: { fullName: string; email: string; phone?: string } | null;
+  currentUser: { fullName: string; email: string; phone?: string; role?: string } | null;
   onOpenAuth: () => void;
   onLogout: () => void;
 }
@@ -66,13 +67,18 @@ export default function Header({ activeTab, setActiveTab, currentUser, onOpenAut
           <div className="flex items-center gap-3">
             {currentUser ? (
               <div className="flex items-center gap-2">
-                <div
-                  className="hidden lg:flex flex-col text-right cursor-pointer group"
-                  onClick={() => setActiveTab('profile')}
-                  title="Xem hồ sơ cá nhân"
-                >
-                  <span className="text-xs font-bold text-slate-800 group-hover:text-sky-600 transition-colors">Chào, {currentUser.fullName} 👋</span>
-                  <span className="text-[9px] text-slate-400 font-medium group-hover:text-sky-500 transition-colors">{currentUser.email}</span>
+                {currentUser.role === 'ROLE_ADMIN' && (
+                  <Link
+                    to="/admin"
+                    className="mr-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-bold transition-colors border border-indigo-200 flex items-center gap-1.5"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5" />
+                    Trang Quản Trị
+                  </Link>
+                )}
+                <div className="hidden lg:flex flex-col text-right">
+                  <span className="text-xs font-bold text-slate-800">Chào, {currentUser.fullName} 👋</span>
+                  <span className="text-[9px] text-slate-400 font-medium">{currentUser.email}</span>
                 </div>
                 <div
                   className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-sky-100 transition-colors shadow-sm"
