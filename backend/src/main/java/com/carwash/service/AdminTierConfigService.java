@@ -55,6 +55,7 @@ public class AdminTierConfigService {
             case BRONZE -> 0;
             case SILVER -> 500;
             case GOLD -> 1500;
+            case PLATINUM -> 3000;
         };
     }
 

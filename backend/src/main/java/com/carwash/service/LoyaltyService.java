@@ -2,15 +2,20 @@ package com.carwash.service;
 
 import com.carwash.dto.response.LoyaltyResponse;
 import com.carwash.entity.User;
+import com.carwash.entity.LoyaltyConfig;
 import com.carwash.dto.response.TierInfoResponse;
 import com.carwash.enums.LoyaltyTier;
 import com.carwash.exception.BadRequestException;
 import com.carwash.exception.ResourceNotFoundException;
 import com.carwash.repository.BookingRepository;
 import com.carwash.repository.UserRepository;
+import com.carwash.repository.LoyaltyConfigRepository;
+import com.carwash.repository.LoyaltyTransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class LoyaltyService implements ILoyaltyService {
