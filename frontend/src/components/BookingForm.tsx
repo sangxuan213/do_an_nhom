@@ -20,7 +20,7 @@ const IconMap: Record<string, React.ComponentType<any>> = {
 interface BookingFormProps {
   onBookingSubmitted: (booking: Booking) => void;
   setActiveTab: (tab: string) => void;
-  currentUser?: any;
+  currentUser: { fullName: string; email: string; phone?: string; role?: string } | null;
 }
 
 export default function BookingForm({ onBookingSubmitted, setActiveTab, currentUser }: BookingFormProps) {
@@ -32,7 +32,10 @@ export default function BookingForm({ onBookingSubmitted, setActiveTab, currentU
   // Date default is tomorrow or today
   const todayStr = useMemo(() => {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }, []);
 
   const [bookingDate, setBookingDate] = useState<string>(todayStr);
@@ -41,6 +44,14 @@ export default function BookingForm({ onBookingSubmitted, setActiveTab, currentU
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [licensePlate, setLicensePlate] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  
+  // Auto-fill customer info if logged in
+  useEffect(() => {
+    if (currentUser) {
+      setCustomerName(prev => prev || currentUser.fullName || '');
+      setCustomerPhone(prev => prev || currentUser.phone || '');
+    }
+  }, [currentUser]);
   
   // Form validations
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -140,11 +151,27 @@ export default function BookingForm({ onBookingSubmitted, setActiveTab, currentU
   const handleNextStep = () => {
     if (validateStep(step)) {
       setStep(prev => Math.min(prev + 1, 4));
+      const element = document.getElementById('booking-section');
+      if (element) {
+        const yOffset = -90; // Offset for sticky header
+        const y = element.getBoundingClientRect().top + window.scrollY + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
   const handlePrevStep = () => {
     setStep(prev => Math.max(prev - 1, 1));
+    const element = document.getElementById('booking-section');
+    if (element) {
+      const yOffset = -90; // Offset for sticky header
+      const y = element.getBoundingClientRect().top + window.scrollY + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

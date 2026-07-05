@@ -1,6 +1,8 @@
 package com.carwash.dto.response;
 
 import com.carwash.enums.BookingStatus;
+import com.carwash.enums.PaymentMethod;
+import com.carwash.enums.PaymentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,4 +32,7 @@ public class BookingResponse {
     private String notes;
     private BigDecimal totalCost;
     private List<String> addOnIds;
+    private PaymentMethod paymentMethod;
+    private PaymentStatus paymentStatus;
+    private String checkoutUrl;
 }

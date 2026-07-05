@@ -293,6 +293,8 @@ public class BookingService {
                 .notes(booking.getNotes())
                 .totalCost(booking.getTotalCost())
                 .addOnIds(booking.getAddOnIds())
+                .paymentMethod(booking.getPaymentMethod())
+                .paymentStatus(booking.getPaymentStatus())
                 .build();
     }
 

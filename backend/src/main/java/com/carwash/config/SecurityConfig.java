@@ -32,6 +32,7 @@ public class SecurityConfig {
                 // Public endpoints
             	.requestMatchers("/api/auth/**", "/api/otp/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/services/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/payments/sepay-webhook").permitAll()
                 // Admin-only endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // All other endpoints require authentication

@@ -6,7 +6,7 @@ services:
     container_name: carwash-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123123
+      POSTGRES_PASSWORD: 1234
       POSTGRES_DB: carwash_db
     ports:
       - "5433:5432"
