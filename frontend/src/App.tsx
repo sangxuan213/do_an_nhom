@@ -49,8 +49,28 @@ function CustomerApp() {
   const [authError, setAuthError] = useState<string>('');
 
   // Initialize data from LocalStorage
-  useEffect(() => {
-    // Fetch user profile from API if token exists
+  const fetchBookings = () => {
+    const token = localStorage.getItem('autoclean_token');
+    if (token) {
+      api.get('/bookings')
+        .then(res => {
+          const normalized = (res.data.data || []).map((b: any) => {
+            let normalizedStatus = b.status?.toLowerCase();
+            if (normalizedStatus === 'confirmed') {
+              normalizedStatus = 'processing';
+            }
+            return {
+              ...b,
+              status: normalizedStatus
+            };
+          });
+          setBookings(normalized);
+        })
+        .catch(err => console.error('Failed to fetch bookings', err));
+    }
+  };
+
+  const fetchUserProfile = () => {
     const token = localStorage.getItem('autoclean_token');
     if (token) {
       api.get('/auth/me')
@@ -59,10 +79,15 @@ function CustomerApp() {
           console.error('Failed to fetch user', err);
           handleLogout();
         });
+    }
+  };
 
-      api.get('/bookings')
-        .then(res => setBookings(res.data.data))
-        .catch(err => console.error('Failed to fetch bookings', err));
+  // Initialize data from LocalStorage
+  useEffect(() => {
+    const token = localStorage.getItem('autoclean_token');
+    if (token) {
+      fetchUserProfile();
+      fetchBookings();
     } else {
       // Not logged in
       setCurrentUser(null);
@@ -82,6 +107,15 @@ function CustomerApp() {
       localStorage.setItem('autoclean_reviews', JSON.stringify(INITIAL_REVIEWS));
     }
   }, []);
+
+  // Automatically refresh user bookings and profile when switching tabs to stay in sync with live database changes
+  useEffect(() => {
+    if (activeTab === 'tracker') {
+      fetchBookings();
+    } else if (activeTab === 'profile') {
+      fetchUserProfile();
+    }
+  }, [activeTab]);
 
   // Sync reviews to LocalStorage on updates (keep as is since we didn't add Review API)
   const saveReviews = (updated: Review[]) => {
@@ -112,9 +146,17 @@ function CustomerApp() {
       });
 
       const savedBooking = res.data.data;
-      const updated = [savedBooking, ...bookings];
+      let normalizedStatus = savedBooking.status?.toLowerCase();
+      if (normalizedStatus === 'confirmed') {
+        normalizedStatus = 'processing';
+      }
+      const normalizedBooking = {
+        ...savedBooking,
+        status: normalizedStatus
+      };
+      const updated = [normalizedBooking, ...bookings];
       setBookings(updated);
-      setNewlyCreatedBooking(savedBooking);
+      setNewlyCreatedBooking(normalizedBooking);
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.message || 'Có lỗi khi đặt lịch!');
