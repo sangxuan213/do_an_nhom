@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { 
   User as UserIcon, Mail, Phone, Award, Star, Calendar, 
-  Shield, Edit2, Save, X, Loader2, Car, Sparkles, Check, Info 
+  Shield, Edit2, Save, X, Loader2, Car, Sparkles, Check, Info,
+  Bike, Truck, Trash2, Plus
 } from 'lucide-react';
-import { User, LoyaltyInfo } from '../types';
+import { User, LoyaltyInfo, VehicleType, CustomerVehicle } from '../types';
 import api from '../api';
 
 interface UserProfileProps {
@@ -26,31 +27,60 @@ export default function UserProfile({ currentUser, onProfileUpdated }: UserProfi
   const [success, setSuccess] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
+  // Vehicle states
+  const [vehicles, setVehicles] = useState<CustomerVehicle[]>([]);
+  const [loadingVehicles, setLoadingVehicles] = useState<boolean>(true);
+  const [isAddingVehicle, setIsAddingVehicle] = useState<boolean>(false);
+  const [editVehicleId, setEditVehicleId] = useState<number | null>(null);
+  
+  // Vehicle form states
+  const [vehicleName, setVehicleName] = useState<string>('');
+  const [vehicleLicensePlate, setVehicleLicensePlate] = useState<string>('');
+  const [vehicleType, setVehicleType] = useState<VehicleType>(VehicleType.SEDAN);
+  const [isSavingVehicle, setIsSavingVehicle] = useState<boolean>(false);
+
+  const fetchVehicles = async () => {
+    try {
+      setLoadingVehicles(true);
+      const res = await api.get('/customer/vehicles');
+      setVehicles(res.data.data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch vehicles', err);
+    } finally {
+      setLoadingVehicles(false);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
+      setLoadingVehicles(true);
       setError('');
-      // Fetch customer profile & loyalty simultaneously
-      const [profileRes, loyaltyRes] = await Promise.all([
+      // Fetch customer profile, loyalty & vehicles simultaneously
+      const [profileRes, loyaltyRes, vehiclesRes] = await Promise.all([
         api.get('/customer/profile'),
-        api.get('/customer/loyalty')
+        api.get('/customer/loyalty'),
+        api.get('/customer/vehicles')
       ]);
 
       const profileData = profileRes.data.data;
       const loyaltyData = loyaltyRes.data.data;
+      const vehiclesData = vehiclesRes.data.data || [];
 
       setProfile(profileData);
       setLoyalty(loyaltyData);
+      setVehicles(vehiclesData);
 
       // Initialize form values
       setEditName(profileData.name || '');
       setEditPhone(profileData.phone || '');
       setEditLicensePlate(profileData.licensePlate || '');
     } catch (err: any) {
-      console.error('Failed to fetch profile or loyalty details', err);
+      console.error('Failed to fetch profile, loyalty or vehicles details', err);
       setError('Không thể tải thông tin hồ sơ thành công. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
+      setLoadingVehicles(false);
     }
   };
 
@@ -112,6 +142,111 @@ export default function UserProfile({ currentUser, onProfileUpdated }: UserProfi
     }
     setIsEditing(false);
     setError('');
+  };
+
+  const handleSaveVehicle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vehicleLicensePlate.trim()) {
+      setError('Biển số xe không được để trống.');
+      return;
+    }
+
+    try {
+      setIsSavingVehicle(true);
+      setError('');
+      setSuccess('');
+
+      const body = {
+        name: vehicleName.trim() || null,
+        licensePlate: vehicleLicensePlate.trim().toUpperCase(),
+        vehicleType: vehicleType
+      };
+
+      if (editVehicleId !== null) {
+        await api.put(`/customer/vehicles/${editVehicleId}`, body);
+        setSuccess('Cập nhật phương tiện thành công!');
+      } else {
+        await api.post('/customer/vehicles', body);
+        setSuccess('Thêm phương tiện mới thành công!');
+      }
+
+      setVehicleName('');
+      setVehicleLicensePlate('');
+      setVehicleType(VehicleType.SEDAN);
+      setIsAddingVehicle(false);
+      setEditVehicleId(null);
+
+      await fetchVehicles();
+
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
+    } catch (err: any) {
+      console.error('Failed to save vehicle', err);
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi lưu thông tin xe.');
+    } finally {
+      setIsSavingVehicle(false);
+    }
+  };
+
+  const handleEditVehicleClick = (vehicle: CustomerVehicle) => {
+    setEditVehicleId(vehicle.id);
+    setVehicleName(vehicle.name || '');
+    setVehicleLicensePlate(vehicle.licensePlate);
+    setVehicleType(vehicle.vehicleType);
+    setIsAddingVehicle(true);
+    setError('');
+  };
+
+  const handleDeleteVehicle = async (id: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa phương tiện này không?')) {
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+      await api.delete(`/customer/vehicles/${id}`);
+      setSuccess('Xóa phương tiện thành công!');
+      
+      await fetchVehicles();
+
+      setTimeout(() => {
+        setSuccess('');
+      }, 3000);
+    } catch (err: any) {
+      console.error('Failed to delete vehicle', err);
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi xóa phương tiện.');
+    }
+  };
+
+  const handleCancelVehicleEdit = () => {
+    setIsAddingVehicle(false);
+    setEditVehicleId(null);
+    setVehicleName('');
+    setVehicleLicensePlate('');
+    setVehicleType(VehicleType.SEDAN);
+  };
+
+  const getVehicleIcon = (type: VehicleType) => {
+    switch (type) {
+      case VehicleType.XE_MAY:
+        return <Bike className="w-5 h-5 text-sky-500" />;
+      case VehicleType.PICKUP:
+        return <Truck className="w-5 h-5 text-sky-500" />;
+      default:
+        return <Car className="w-5 h-5 text-sky-500" />;
+    }
+  };
+
+  const getVehicleTypeName = (type: VehicleType) => {
+    switch (type) {
+      case VehicleType.XE_MAY: return 'Xe máy, mô tô';
+      case VehicleType.SEDAN: return 'Ô tô 4-5 chỗ (Sedan)';
+      case VehicleType.SUV: return 'SUV/MPV 7 chỗ';
+      case VehicleType.PICKUP: return 'Bán tải / Xe tải nhỏ';
+      default: return type;
+    }
   };
 
   if (loading) {
@@ -434,6 +569,150 @@ export default function UserProfile({ currentUser, onProfileUpdated }: UserProfi
               )}
             </div>
           )}
+
+          {/* VEHICLES SECTION */}
+          <div className="bg-white rounded-3xl p-6 border border-sky-100 shadow-xl shadow-sky-50 space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h4 className="text-sm font-extrabold text-slate-800 tracking-tight">
+                  Danh sách xe của tôi
+                </h4>
+                <p className="text-[10px] text-slate-400 font-medium">Quản lý các phương tiện dùng để đặt lịch nhanh</p>
+              </div>
+
+              {!isAddingVehicle && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingVehicle(true);
+                    setEditVehicleId(null);
+                    setVehicleName('');
+                    setVehicleLicensePlate('');
+                    setVehicleType(VehicleType.SEDAN);
+                  }}
+                  className="px-3 py-1.5 text-xs font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 rounded-xl transition-all cursor-pointer"
+                >
+                  Thêm xe mới
+                </button>
+              )}
+            </div>
+
+            {isAddingVehicle && (
+              <form onSubmit={handleSaveVehicle} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-4 animate-fade-in-up">
+                <h5 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+                  {editVehicleId !== null ? 'Cập nhật phương tiện' : 'Thêm phương tiện mới'}
+                </h5>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tên gợi nhớ (Tùy chọn)</label>
+                    <input
+                      type="text"
+                      value={vehicleName}
+                      onChange={(e) => setVehicleName(e.target.value)}
+                      placeholder="Ví dụ: Vios của tôi, Xe Wave..."
+                      className="w-full px-3 py-2 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Biển số xe</label>
+                    <input
+                      type="text"
+                      required
+                      value={vehicleLicensePlate}
+                      onChange={(e) => setVehicleLicensePlate(e.target.value.toUpperCase())}
+                      placeholder="Ví dụ: 30A-123.45"
+                      className="w-full px-3 py-2 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium font-mono uppercase tracking-wider"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phân khúc xe</label>
+                    <select
+                      value={vehicleType}
+                      onChange={(e) => setVehicleType(e.target.value as VehicleType)}
+                      className="w-full px-3 py-2 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium bg-white"
+                    >
+                      <option value={VehicleType.XE_MAY}>Xe máy, mô tô</option>
+                      <option value={VehicleType.SEDAN}>Ô tô 4-5 chỗ (Sedan)</option>
+                      <option value={VehicleType.SUV}>SUV/MPV 7 chỗ</option>
+                      <option value={VehicleType.PICKUP}>Bán tải / Xe tải nhỏ</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={handleCancelVehicleEdit}
+                    className="px-3 py-1.5 text-xs font-bold text-slate-500 bg-white hover:bg-slate-100 border border-slate-100 rounded-xl transition-all cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSavingVehicle}
+                    className="px-4 py-1.5 text-xs font-bold text-white bg-sky-500 hover:bg-sky-600 rounded-xl shadow-md shadow-sky-50 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingVehicle ? 'Đang lưu...' : (editVehicleId !== null ? 'Cập nhật' : 'Lưu xe')}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {loadingVehicles ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+              </div>
+            ) : vehicles.length === 0 ? (
+              <div className="text-center p-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs italic select-none">
+                Bạn chưa lưu phương tiện nào. Hãy thêm xe mới để đặt lịch nhanh hơn!
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {vehicles.map((v) => (
+                  <div
+                    key={v.id}
+                    className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between hover:shadow-md hover:border-sky-100 transition-all duration-300 group"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="space-y-0.5">
+                        <div className="font-extrabold text-slate-800 text-sm">
+                          {v.name || <span className="text-slate-400 font-medium italic text-xs">Không có tên gợi nhớ</span>}
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-mono bg-sky-50 border border-sky-100 text-sky-800 px-2 py-0.2 rounded text-[10px] uppercase tracking-wider font-extrabold">
+                            {v.licensePlate}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-medium">• {getVehicleTypeName(v.vehicleType)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 select-none">
+                      <button
+                        type="button"
+                        onClick={() => handleEditVehicleClick(v)}
+                        className="px-2 py-1 text-xs font-bold text-sky-600 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-all cursor-pointer"
+                        title="Chỉnh sửa xe"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteVehicle(v.id)}
+                        className="px-2 py-1 text-xs font-bold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                        title="Xóa xe"
+                      >
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

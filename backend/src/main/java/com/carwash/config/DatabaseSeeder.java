@@ -4,6 +4,7 @@ import com.carwash.entity.MachineStatus;
 import com.carwash.entity.ServicePackage;
 import com.carwash.entity.TierConfig;
 import com.carwash.entity.User;
+import com.carwash.entity.LoyaltyConfig;
 import com.carwash.enums.LoyaltyTier;
 import com.carwash.enums.MachineState;
 import com.carwash.enums.Role;
@@ -11,6 +12,7 @@ import com.carwash.repository.MachineStatusRepository;
 import com.carwash.repository.ServicePackageRepository;
 import com.carwash.repository.TierConfigRepository;
 import com.carwash.repository.UserRepository;
+import com.carwash.repository.LoyaltyConfigRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,14 +29,64 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final ServicePackageRepository servicePackageRepository;
     private final MachineStatusRepository machineStatusRepository;
     private final TierConfigRepository tierConfigRepository;
+    private final LoyaltyConfigRepository loyaltyConfigRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
         seedTierConfigs();
+        seedLoyaltyConfigs();
         seedUsers();
         seedServicePackages();
         seedMachines();
+    }
+
+    private void seedLoyaltyConfigs() {
+        if (loyaltyConfigRepository.count() == 0) {
+            List<LoyaltyConfig> configs = List.of(
+                    LoyaltyConfig.builder()
+                            .tier("BRONZE")
+                            .minPoints(0)
+                            .minSpent(new BigDecimal("0.00"))
+                            .minVisits(0)
+                            .discountPercent(0)
+                            .bookingWindowDays(7)
+                            .benefits("Quyền lợi cơ bản")
+                            .priority(1)
+                            .build(),
+                    LoyaltyConfig.builder()
+                            .tier("SILVER")
+                            .minPoints(500)
+                            .minSpent(new BigDecimal("50.00"))
+                            .minVisits(5)
+                            .discountPercent(5)
+                            .bookingWindowDays(10)
+                            .benefits("Giảm giá 5%")
+                            .priority(2)
+                            .build(),
+                    LoyaltyConfig.builder()
+                            .tier("GOLD")
+                            .minPoints(1500)
+                            .minSpent(new BigDecimal("150.00"))
+                            .minVisits(15)
+                            .discountPercent(10)
+                            .bookingWindowDays(14)
+                            .benefits("Giảm giá 10%, Ưu tiên phục vụ")
+                            .priority(3)
+                            .build(),
+                    LoyaltyConfig.builder()
+                            .tier("PLATINUM")
+                            .minPoints(3000)
+                            .minSpent(new BigDecimal("300.00"))
+                            .minVisits(30)
+                            .discountPercent(15)
+                            .bookingWindowDays(30)
+                            .benefits("Giảm giá 15%, Đặc quyền VIP")
+                            .priority(4)
+                            .build()
+            );
+            loyaltyConfigRepository.saveAll(configs);
+        }
     }
 
     private void seedTierConfigs() {

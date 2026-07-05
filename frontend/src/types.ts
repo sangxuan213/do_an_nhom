@@ -154,5 +154,11 @@ export interface User {
   loyaltyPoints?: number;
   loyaltyTier?: string;
   createdAt?: string;
+}
 
+export interface CustomerVehicle {
+  id: number;
+  licensePlate: string;
+  vehicleType: VehicleType;
+  name: string;
 }

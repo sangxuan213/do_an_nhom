@@ -329,6 +329,7 @@ function CustomerApp() {
               <BookingForm
                 onBookingSubmitted={handleBookingSubmitted}
                 setActiveTab={setActiveTab}
+                currentUser={currentUser}
               />
 
               {/* Value propositions: why choose us */}
