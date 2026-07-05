@@ -1,8 +1,3 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -10,8 +5,9 @@ import {
   Sparkles, Clock, Check, ChevronRight, ChevronLeft, 
   User, Phone, Hash, FileText, Calendar, Compass, ShieldCheck 
 } from 'lucide-react';
-import { VehicleType, Booking, WashService, AddOnService } from '../types';
+import { VehicleType, Booking, WashService, AddOnService, CustomerVehicle } from '../types';
 import { VEHICLE_LIST, WASH_SERVICES, ADD_ON_SERVICES, TIME_SLOTS } from '../data';
+import api from '../api';
 
 // Component mapping for vehicle icons
 const IconMap: Record<string, React.ComponentType<any>> = {
@@ -59,6 +55,47 @@ export default function BookingForm({ onBookingSubmitted, setActiveTab, currentU
   
   // Form validations
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Saved vehicles integration states
+  const [savedVehicles, setSavedVehicles] = useState<CustomerVehicle[]>([]);
+  const [selectedSavedVehicleId, setSelectedSavedVehicleId] = useState<string>('manual');
+
+  // Pre-fill user data
+  useEffect(() => {
+    if (currentUser) {
+      setCustomerName(currentUser.fullName || '');
+      setCustomerPhone(currentUser.phone || '');
+    }
+  }, [currentUser]);
+
+  // Load saved vehicles
+  useEffect(() => {
+    if (currentUser) {
+      api.get('/customer/vehicles')
+        .then(res => {
+          const fetchedVehicles = res.data.data || [];
+          setSavedVehicles(fetchedVehicles);
+          
+          // If customer has a default license plate set on their profile, we can find a matching vehicle or pre-fill it.
+          // Alternatively, we just let them pick from the dropdown.
+        })
+        .catch(err => {
+          console.error('Failed to fetch customer vehicles', err);
+        });
+    }
+  }, [currentUser]);
+
+  const handleSavedVehicleChange = (vehicleIdStr: string) => {
+    setSelectedSavedVehicleId(vehicleIdStr);
+    if (vehicleIdStr === 'manual') {
+      return;
+    }
+    const vehicle = savedVehicles.find(v => v.id.toString() === vehicleIdStr);
+    if (vehicle) {
+      setLicensePlate(vehicle.licensePlate);
+      setSelectedVehicle(vehicle.vehicleType);
+    }
+  };
 
   // Resolve vehicle details
   const currentVehicleDetail = useMemo(() => {
@@ -219,7 +256,10 @@ export default function BookingForm({ onBookingSubmitted, setActiveTab, currentU
                       <div
                         key={v.id}
                         id={`vehicle-card-${v.id}`}
-                        onClick={() => setSelectedVehicle(v.id)}
+                        onClick={() => {
+                          setSelectedVehicle(v.id);
+                          setSelectedSavedVehicleId('manual');
+                        }}
                         className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300 group ${
                           isSelected
                             ? 'border-sky-500 bg-sky-50/50 shadow-md ring-1 ring-sky-300'
@@ -487,6 +527,25 @@ export default function BookingForm({ onBookingSubmitted, setActiveTab, currentU
                       {errors.customerPhone && <p className="text-red-500 text-xs mt-1 font-semibold">{errors.customerPhone}</p>}
                     </div>
 
+                    {currentUser && savedVehicles.length > 0 && (
+                      <div className="mb-4">
+                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Chọn xe đã lưu của bạn</label>
+                        <select
+                          id="saved-vehicle-selector"
+                          value={selectedSavedVehicleId}
+                          onChange={(e) => handleSavedVehicleChange(e.target.value)}
+                          className="w-full p-3 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-sm font-medium bg-white cursor-pointer"
+                        >
+                          <option value="manual">-- Nhập thủ công xe khác --</option>
+                          {savedVehicles.map((v) => (
+                            <option key={v.id} value={v.id.toString()}>
+                              {v.name || 'Không tên'} ({v.licensePlate}) - {v.vehicleType}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     <div>
                       <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Biển số xe của bạn</label>
                       <div className="relative">
@@ -496,8 +555,9 @@ export default function BookingForm({ onBookingSubmitted, setActiveTab, currentU
                           type="text"
                           placeholder="Ví dụ: 30A-123.45 hoặc 59-X3 999.99"
                           value={licensePlate}
-                          onChange={(e) => setLicensePlate(e.target.value)}
-                          className={`w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none transition-all text-sm font-medium placeholder-slate-400 ${
+                          disabled={selectedSavedVehicleId !== 'manual'}
+                          onChange={(e) => setLicensePlate(e.target.value.toUpperCase())}
+                          className={`w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none transition-all text-sm font-medium placeholder-slate-400 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed uppercase font-mono ${
                             errors.licensePlate ? 'border-red-400 focus:border-red-400 focus:ring-red-100' : ''
                           }`}
                         />

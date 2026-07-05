@@ -7,7 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Clock, MapPin, CheckCircle2, AlertCircle, ChevronRight, 
-  Trash2, Cpu, RefreshCw, Smartphone, Hash, Navigation, Filter 
+  Trash2, Smartphone, Hash, Navigation, Filter 
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../types';
 import { VEHICLE_LIST, WASH_SERVICES } from '../data';
@@ -70,15 +70,7 @@ export default function BookingTracker({ bookings, onUpdateStatus, onDeleteBooki
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
-  // Status transitions for simulator
-  const advanceStatus = (booking: Booking) => {
-    let next: BookingStatus = 'pending';
-    if (booking.status === 'pending') next = 'processing';
-    else if (booking.status === 'processing') next = 'completed';
-    else if (booking.status === 'completed') next = 'pending';
-    
-    onUpdateStatus(booking.id, next);
-  };
+
 
   return (
     <div className="space-y-6">
@@ -301,27 +293,7 @@ export default function BookingTracker({ bookings, onUpdateStatus, onDeleteBooki
                       </div>
                     </div>
 
-                    {/* Simulation Console Tool */}
-                    <div className="bg-sky-50/40 border border-sky-100 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 select-none">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-sky-100 p-2 rounded-xl text-sky-600 animate-spin-slow">
-                          <Cpu className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-800 block">Tiện ích trải nghiệm - Trình mô phỏng</span>
-                          <span className="text-xs text-sky-600/90 font-medium">Thử nghiệm tiến trình hoàn thiện rửa xe trực tuyến tại đây</span>
-                        </div>
-                      </div>
 
-                      <button
-                        id={`btn-advance-status-${bk.id}`}
-                        onClick={() => advanceStatus(bk)}
-                        className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-sky-200 text-sky-600 hover:bg-sky-50 rounded-xl text-xs font-bold shadow-xs hover:border-sky-300 transition-all cursor-pointer"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        Cập nhật chặng tiếp theo
-                      </button>
-                    </div>
                   </div>
                 </motion.div>
               );
