@@ -280,4 +280,5 @@ export default function UserProfile({ currentUser }: UserProfileProps) {
         )}
       </AnimatePresence>
     </div>
+  );
 }
