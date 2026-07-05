@@ -35,6 +35,8 @@ import api from './api';
 function CustomerApp() {
   const [activeTab, setActiveTab] = useState<string>('booking');
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(0);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [newlyCreatedBooking, setNewlyCreatedBooking] = useState<Booking | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | null>(null);
@@ -54,6 +56,16 @@ function CustomerApp() {
   const [authError, setAuthError] = useState<string>('');
 
   // Initialize data from LocalStorage
+  const fetchBookings = (page: number = 0) => {
+    api.get(`/bookings/paged?page=${page}&size=5`)
+      .then(res => {
+        setBookings(res.data.data.content);
+        setCurrentPage(res.data.data.pageNumber);
+        setTotalPages(res.data.data.totalPages);
+      })
+      .catch(err => console.error('Failed to fetch bookings', err));
+  };
+
   useEffect(() => {
     // Fetch user profile from API if token exists
     const token = localStorage.getItem('autoclean_token');
@@ -65,13 +77,12 @@ function CustomerApp() {
           handleLogout();
         });
 
-      api.get('/bookings')
-        .then(res => setBookings(res.data.data))
-        .catch(err => console.error('Failed to fetch bookings', err));
+      fetchBookings(0);
     } else {
       // Not logged in
       setCurrentUser(null);
       setBookings([]);
+      setTotalPages(0);
     }
 
     // Reviews initialization
@@ -176,8 +187,8 @@ function CustomerApp() {
   const handleDeleteBooking = async (id: string) => {
     try {
       await api.patch(`/bookings/${id}/cancel`);
-      const updated = bookings.filter(b => b.id !== id);
-      setBookings(updated);
+      alert('Đã huỷ lịch hẹn thành công');
+      fetchBookings(currentPage);
     } catch (err) {
       console.error(err);
     }
@@ -253,9 +264,7 @@ function CustomerApp() {
       setShowAuthModal(false);
 
       // Fetch user bookings after login
-      api.get('/bookings')
-        .then(resBook => setBookings(resBook.data.data))
-        .catch(err => console.error('Failed to fetch bookings', err));
+      fetchBookings(0);
 
       // Reset fields
       setAuthName('');
@@ -451,6 +460,9 @@ function CustomerApp() {
               bookings={bookings}
               onUpdateStatus={handleUpdateStatus}
               onDeleteBooking={handleDeleteBooking}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => fetchBookings(page)}
             />
           )}
 
