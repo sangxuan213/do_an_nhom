@@ -163,6 +163,14 @@ function CustomerApp() {
     }
   };
 
+  const handleProfileUpdated = (updatedCustomer: any) => {
+    setCurrentUser(prev => prev ? {
+      ...prev,
+      fullName: updatedCustomer.name,
+      phone: updatedCustomer.phone
+    } : null);
+  };
+
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -474,7 +482,7 @@ function CustomerApp() {
 
           {/* TAB 4: USER PROFILE SECTION */}
           {activeTab === 'profile' && (
-            <UserProfile currentUser={currentUser} />
+            <UserProfile currentUser={currentUser} onProfileUpdated={handleProfileUpdated} />
           )}
 
         </div >
