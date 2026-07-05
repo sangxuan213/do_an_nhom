@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { User as UserIcon, Mail, Phone, Award, Star, Calendar, Shield } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, Award, Star, Calendar, Shield, AlertCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import api from '../api';
 
@@ -10,6 +11,12 @@ interface UserProfileProps {
 export default function UserProfile({ currentUser }: UserProfileProps) {
   const [profile, setProfile] = useState<User | null>(currentUser);
   const [loading, setLoading] = useState<boolean>(!currentUser);
+  
+  // Edit Profile States
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ fullName: '', phone: '' });
+  const [editError, setEditError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     // Luôn fetch thông tin mới nhất từ /api/account/profile
@@ -40,6 +47,39 @@ export default function UserProfile({ currentUser }: UserProfileProps) {
       </div>
     );
   }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError('');
+
+    if (!editForm.fullName.trim()) {
+      setEditError('Vui lòng nhập Họ tên');
+      return;
+    }
+
+    if (editForm.phone.trim()) {
+      const phoneRegex = /^(0|84)(3|5|7|8|9)[0-9]{8}$/;
+      if (!phoneRegex.test(editForm.phone.trim())) {
+        setEditError('Số điện thoại không hợp lệ. Vui lòng nhập số hợp lệ (VD: 0987654321)');
+        return;
+      }
+    }
+
+    try {
+      setIsSaving(true);
+      const res = await api.put('/account/profile', {
+        fullName: editForm.fullName.trim(),
+        phone: editForm.phone.trim() || undefined
+      });
+      setProfile(res.data.data);
+      setIsEditing(false);
+    } catch (err: any) {
+      console.error(err);
+      setEditError(err.response?.data?.message || 'Có lỗi xảy ra, không thể cập nhật thông tin');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const getTierColor = (tier?: string) => {
     switch (tier) {
@@ -96,7 +136,11 @@ export default function UserProfile({ currentUser }: UserProfileProps) {
                 <UserIcon className="w-4 h-4" /> Thông tin cá nhân
               </h4>
               <button 
-                onClick={() => alert('Chức năng chỉnh sửa đang được phát triển')}
+                onClick={() => {
+                  setEditForm({ fullName: profile.fullName, phone: profile.phone || '' });
+                  setEditError('');
+                  setIsEditing(true);
+                }}
                 className="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition-colors"
               >
                 Chỉnh sửa
@@ -157,7 +201,83 @@ export default function UserProfile({ currentUser }: UserProfileProps) {
             </div>
           </div>
         </div>
-      </div>
     </div>
-  );
+
+      {/* Edit Profile Modal */}
+      <AnimatePresence>
+        {isEditing && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto w-full h-full">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-sky-100 overflow-hidden"
+            >
+              <div className="bg-gradient-to-r from-sky-500 to-indigo-600 p-6 text-center text-white relative">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1 w-6 h-6 rounded-full transition-all text-xs flex items-center justify-center font-bold"
+                >
+                  ✕
+                </button>
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                  <UserIcon className="w-6 h-6 text-white stroke-[2]" />
+                </div>
+                <h3 className="text-xl font-black tracking-tight">
+                  Chỉnh Sửa Thông Tin
+                </h3>
+              </div>
+
+              <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+                {editError && (
+                  <div className="bg-red-50 text-red-600 border border-red-100 p-3 rounded-xl text-xs font-bold flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>{editError}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Họ & Tên</label>
+                  <div className="relative">
+                    <UserIcon className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      required
+                      value={editForm.fullName}
+                      onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Số điện thoại</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                    <input
+                      type="tel"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                      placeholder="0987654321"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-sky-200 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
 }

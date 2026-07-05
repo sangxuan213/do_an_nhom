@@ -50,6 +50,7 @@ function CustomerApp() {
   const [authEmail, setAuthEmail] = useState<string>('');
   const [authPhone, setAuthPhone] = useState<string>('');
   const [authPassword, setAuthPassword] = useState<string>('');
+  const [authConfirmPassword, setAuthConfirmPassword] = useState<string>('');
   const [authError, setAuthError] = useState<string>('');
 
   // Initialize data from LocalStorage
@@ -215,6 +216,11 @@ function CustomerApp() {
         setAuthError('Vui lòng nhập Họ tên để đăng ký');
         return;
       }
+
+      if (authPassword !== authConfirmPassword) {
+        setAuthError('Mật khẩu xác nhận không trùng khớp');
+        return;
+      }
       
       if (authPhone.trim()) {
         const phoneRegex = /^(0|84)(3|5|7|8|9)[0-9]{8}$/;
@@ -256,6 +262,7 @@ function CustomerApp() {
       setAuthEmail('');
       setAuthPhone('');
       setAuthPassword('');
+      setAuthConfirmPassword('');
     } catch (err: any) {
       setAuthError(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
     }
@@ -987,6 +994,24 @@ function CustomerApp() {
                       />
                     </div>
                   </div>
+
+                  {authMode === 'signup' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 font-bold">Xác nhận mật khẩu</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                        <input
+                          id="auth-confirm-password-input"
+                          type="password"
+                          required
+                          placeholder="••••••••"
+                          value={authConfirmPassword}
+                          onChange={(e) => setAuthConfirmPassword(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     type="submit"

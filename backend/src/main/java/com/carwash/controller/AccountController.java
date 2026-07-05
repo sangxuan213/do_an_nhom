@@ -22,4 +22,12 @@ public class AccountController {
         UserResponse user = authService.getCurrentUser(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success(user));
     }
+
+    @org.springframework.web.bind.annotation.PutMapping("/profile")
+    public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
+            Authentication authentication,
+            @jakarta.validation.Valid @org.springframework.web.bind.annotation.RequestBody com.carwash.dto.request.UpdateProfileRequest request) {
+        UserResponse user = authService.updateProfile(authentication.getName(), request);
+        return ResponseEntity.ok(ApiResponse.success("Cập nhật thông tin thành công", user));
+    }
 }
