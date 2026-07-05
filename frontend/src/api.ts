@@ -25,8 +25,12 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       // Xoá token nếu backend báo lỗi 401 (Hết hạn hoặc bị huỷ)
       localStorage.removeItem('autoclean_token');
-      // Reload lại trang để reset state của App (về trạng thái chưa đăng nhập)
-      window.location.href = '/';
+      
+      // Không reload nếu đang ở form đăng nhập/đăng ký
+      const configUrl = error.config?.url || '';
+      if (!configUrl.includes('/auth/login') && !configUrl.includes('/auth/register')) {
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   }

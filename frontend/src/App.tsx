@@ -210,9 +210,19 @@ function CustomerApp() {
       return;
     }
 
-    if (authMode === 'signup' && !authName.trim()) {
-      setAuthError('Vui lòng nhập Họ tên để đăng ký');
-      return;
+    if (authMode === 'signup') {
+      if (!authName.trim()) {
+        setAuthError('Vui lòng nhập Họ tên để đăng ký');
+        return;
+      }
+      
+      if (authPhone.trim()) {
+        const phoneRegex = /^(0|84)(3|5|7|8|9)[0-9]{8}$/;
+        if (!phoneRegex.test(authPhone.trim())) {
+          setAuthError('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam (VD: 0987654321)');
+          return;
+        }
+      }
     }
 
     try {
@@ -499,7 +509,7 @@ function CustomerApp() {
                 <div className="bg-slate-50 p-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
                   <div className="flex items-center gap-2 text-slate-500 font-medium">
                     <AlertCircle className="w-4.5 h-4.5 text-sky-500 flex-shrink-0" />
-                    Báo giá trên hệ thống là báo giá trọn gói niêm yết, không đòi thêm tiền boa hay nâng khống.
+                    Báo giá trên hệ thống là giá niêm yết đã bao gồm tất cả chi phí và không có phát sinh.
                   </div>
                   <button
                     onClick={() => setActiveTab('booking')}

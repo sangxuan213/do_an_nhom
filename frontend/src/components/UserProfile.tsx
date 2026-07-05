@@ -91,9 +91,17 @@ export default function UserProfile({ currentUser }: UserProfileProps) {
         {/* Right Column - Details */}
         <div className="col-span-1 md:col-span-2 space-y-6">
           <div className="bg-white rounded-3xl p-6 border border-sky-100 shadow-xl shadow-sky-50">
-            <h4 className="text-sm font-extrabold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-              <UserIcon className="w-4 h-4" /> Thông tin cá nhân
-            </h4>
+            <div className="flex justify-between items-center mb-6">
+              <h4 className="text-sm font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <UserIcon className="w-4 h-4" /> Thông tin cá nhân
+              </h4>
+              <button 
+                onClick={() => alert('Chức năng chỉnh sửa đang được phát triển')}
+                className="text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Chỉnh sửa
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-1">
