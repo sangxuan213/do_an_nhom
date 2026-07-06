@@ -1,3 +1,5 @@
+link chia cong việc cu thể
+https://docs.google.com/spreadsheets/d/11Od3UTkjM2TxU25_7LJ7FWYWMshOxn3DdUHXRVrShtE/edit?gid=554510438#gid=554510438
 # 🚗 AutoClean - Hệ Thống Quản Lý Rửa Xe Thông Minh
 
 Hệ thống quản lý dịch vụ rửa xe full-stack tích hợp tính năng đặt lịch trước (Advance Booking), quản lý người dùng và theo dõi tiến độ rửa xe.
