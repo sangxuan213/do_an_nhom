@@ -37,9 +37,7 @@ public class BookingService {
     private final ServicePackageRepository servicePackageRepository;
     private final UserRepository userRepository;
     private final LoyaltyService loyaltyService;
-
-    // Maximum concurrent bookings per time slot
-    private static final int MAX_BOOKINGS_PER_SLOT = 3;
+    private final com.carwash.repository.MachineStatusRepository machineStatusRepository;
 
     private static final BigDecimal DISCOUNT_SCALE = new BigDecimal("100");
 
@@ -91,7 +89,12 @@ public class BookingService {
                 .filter(b -> b.getStatus() != BookingStatus.CANCELLED)
                 .count();
 
-        if (activeBookings >= MAX_BOOKINGS_PER_SLOT) {
+        long maxCapacity = machineStatusRepository.countByState(com.carwash.enums.MachineState.AVAILABLE);
+        if (maxCapacity == 0) {
+            throw new BadRequestException("All machines are currently under maintenance. We cannot accept bookings at this time.");
+        }
+
+        if (activeBookings >= maxCapacity) {
             throw new BadRequestException("This time slot is fully booked. Please choose another slot.");
         }
 
@@ -230,6 +233,7 @@ public class BookingService {
         }
 
         List<Booking> bookingsOnDate = bookingRepository.findActiveBookingsByDate(date);
+        long maxCapacity = machineStatusRepository.countByState(com.carwash.enums.MachineState.AVAILABLE);
 
         return TIME_SLOTS.stream().map(slot -> {
             long bookedCount = bookingsOnDate.stream()
@@ -237,7 +241,7 @@ public class BookingService {
                     .count();
             return TimeSlotResponse.builder()
                     .time(slot)
-                    .available(bookedCount < MAX_BOOKINGS_PER_SLOT)
+                    .available(bookedCount < maxCapacity)
                     .build();
         }).collect(Collectors.toList());
     }

@@ -11,6 +11,8 @@ import java.util.List;
 public interface MachineStatusRepository extends JpaRepository<MachineStatus, Long> {
 
     List<MachineStatus> findByState(MachineState state);
+    
+    long countByState(MachineState state);
 
     boolean existsByMachineName(String machineName);
 }
