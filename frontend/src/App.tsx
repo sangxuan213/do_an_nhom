@@ -57,13 +57,26 @@ function CustomerApp() {
 
   // Initialize data from LocalStorage
   const fetchBookings = (page: number = 0) => {
-    api.get(`/bookings/paged?page=${page}&size=5`)
-      .then(res => {
-        setBookings(res.data.data.content);
-        setCurrentPage(res.data.data.pageNumber);
-        setTotalPages(res.data.data.totalPages);
-      })
-      .catch(err => console.error('Failed to fetch bookings', err));
+    const token = localStorage.getItem('autoclean_token');
+    if (token) {
+      api.get(`/bookings/paged?page=${page}&size=5`)
+        .then(res => {
+          const normalized = (res.data.data.content || []).map((b: any) => {
+            let normalizedStatus = b.status?.toLowerCase();
+            if (normalizedStatus === 'confirmed') {
+              normalizedStatus = 'processing';
+            }
+            return {
+              ...b,
+              status: normalizedStatus
+            };
+          });
+          setBookings(normalized);
+          setCurrentPage(res.data.data.pageNumber);
+          setTotalPages(res.data.data.totalPages);
+        })
+        .catch(err => console.error('Failed to fetch bookings', err));
+    }
   };
 
   useEffect(() => {
