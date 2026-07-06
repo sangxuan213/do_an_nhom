@@ -16,9 +16,19 @@ interface BookingTrackerProps {
   bookings: Booking[];
   onUpdateStatus: (id: string, newStatus: BookingStatus) => void;
   onDeleteBooking: (id: string) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
-export default function BookingTracker({ bookings, onUpdateStatus, onDeleteBooking }: BookingTrackerProps) {
+export default function BookingTracker({ 
+  bookings, 
+  onUpdateStatus, 
+  onDeleteBooking,
+  currentPage,
+  totalPages,
+  onPageChange
+}: BookingTrackerProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
@@ -324,6 +334,43 @@ export default function BookingTracker({ bookings, onUpdateStatus, onDeleteBooki
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-8 pb-4">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 0}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+            >
+              Trang Trước
+            </button>
+            
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => onPageChange(i)}
+                  className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-colors ${
+                    currentPage === i 
+                      ? 'bg-sky-500 text-white shadow-md shadow-sky-200' 
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages - 1}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+            >
+              Trang Sau
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

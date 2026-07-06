@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 @RestController
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
@@ -35,6 +38,15 @@ public class AdminController {
     @GetMapping("/bookings")
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getAllBookings() {
         List<BookingResponse> bookings = bookingService.getAllBookings();
+        return ResponseEntity.ok(ApiResponse.success(bookings));
+    }
+
+    @GetMapping("/bookings/paged")
+    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getAllBookingsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        PageResponse<BookingResponse> bookings = bookingService.getAllBookingsPaged(pageable);
         return ResponseEntity.ok(ApiResponse.success(bookings));
     }
 

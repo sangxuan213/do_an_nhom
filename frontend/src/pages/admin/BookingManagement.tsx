@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Filter, RefreshCcw } from 'lucide-react';
-import { getAdminBookings, updateBookingStatus } from '../../adminApi';
+import { getAdminBookingsPaged, updateBookingStatus } from '../../adminApi';
 import type { AdminBooking } from '../../types';
 import { AdminBookingStatus } from '../../types';
 
@@ -33,16 +33,26 @@ export default function BookingManagement() {
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
-  const fetchBookings = () => {
+  const fetchBookings = (page: number = 0) => {
     setLoading(true);
-    getAdminBookings()
-      .then(setBookings)
+    getAdminBookingsPaged(page, 10)
+      .then(data => {
+        setBookings(data.content);
+        setCurrentPage(data.pageNumber);
+        setTotalPages(data.totalPages);
+        setTotalElements(data.totalElements);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchBookings(); }, []);
+  useEffect(() => { fetchBookings(0); }, []);
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     setUpdatingId(id);
@@ -86,11 +96,11 @@ export default function BookingManagement() {
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0 }}>Quản Lý Đơn Đặt Lịch</h2>
           <p style={{ fontSize: 13, color: '#64748b', marginTop: 4, fontWeight: 500 }}>
-            Tổng cộng {bookings.length} đơn hàng trong hệ thống.
+            Tổng cộng {totalElements} đơn hàng trong hệ thống (Trang {currentPage + 1}/{totalPages || 1}).
           </p>
         </div>
         <button
-          onClick={fetchBookings}
+          onClick={() => fetchBookings(currentPage)}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '9px 16px', borderRadius: 10,
@@ -99,7 +109,7 @@ export default function BookingManagement() {
             cursor: 'pointer',
           }}
         >
-          <RefreshCcw style={{ width: 14, height: 14 }} /> Tải lại
+          <RefreshCcw style={{ width: 14, height: 14 }} /> Tải lại trang hiện tại
         </button>
       </div>
 
@@ -221,14 +231,35 @@ export default function BookingManagement() {
         <div style={{
           padding: '12px 20px', background: '#f8fafc',
           borderTop: '1px solid #e2e8f0', fontSize: 11, color: '#64748b', fontWeight: 600,
-          display: 'flex', justifyContent: 'space-between',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center'
         }}>
-          <span>Hiển thị {filtered.length} / {bookings.length} đơn hàng</span>
+          <span>Hiển thị {filtered.length} đơn hàng (Trang hiện tại)</span>
+          
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button 
+                onClick={() => fetchBookings(currentPage - 1)}
+                disabled={currentPage === 0}
+                style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: currentPage === 0 ? 'not-allowed' : 'pointer' }}
+              >
+                Trước
+              </button>
+              <span style={{ padding: '4px 8px' }}>{currentPage + 1} / {totalPages}</span>
+              <button 
+                onClick={() => fetchBookings(currentPage + 1)}
+                disabled={currentPage === totalPages - 1}
+                style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', cursor: currentPage === totalPages - 1 ? 'not-allowed' : 'pointer' }}
+              >
+                Sau
+              </button>
+            </div>
+          )}
+
           <span>
-            Tổng doanh thu (Hoàn thành):{' '}
+            Tổng doanh thu (Trang này):{' '}
             <strong style={{ color: '#10b981' }}>
               {new Intl.NumberFormat('vi-VN').format(
-                bookings.filter(b => b.status === AdminBookingStatus.COMPLETED).reduce((s, b) => s + (b.totalCost || 0), 0)
+                filtered.filter(b => b.status === AdminBookingStatus.COMPLETED).reduce((s, b) => s + (b.totalCost || 0), 0)
               )}đ
             </strong>
           </span>

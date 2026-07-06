@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import com.carwash.dto.response.PageResponse;
+
 @RestController
 @RequestMapping("/api/bookings")
 @RequiredArgsConstructor
@@ -31,6 +35,16 @@ public class BookingController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getMyBookings(Authentication authentication) {
         List<BookingResponse> bookings = bookingService.getUserBookings(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(bookings));
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<ApiResponse<PageResponse<BookingResponse>>> getMyBookingsPaged(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        PageResponse<BookingResponse> bookings = bookingService.getUserBookingsPaged(authentication.getName(), pageable);
         return ResponseEntity.ok(ApiResponse.success(bookings));
     }
 

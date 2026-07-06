@@ -35,6 +35,8 @@ import api from './api';
 function CustomerApp() {
   const [activeTab, setActiveTab] = useState<string>('booking');
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(0);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [newlyCreatedBooking, setNewlyCreatedBooking] = useState<Booking | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | null>(null);
@@ -50,15 +52,16 @@ function CustomerApp() {
   const [authEmail, setAuthEmail] = useState<string>('');
   const [authPhone, setAuthPhone] = useState<string>('');
   const [authPassword, setAuthPassword] = useState<string>('');
+  const [authConfirmPassword, setAuthConfirmPassword] = useState<string>('');
   const [authError, setAuthError] = useState<string>('');
 
   // Initialize data from LocalStorage
-  const fetchBookings = () => {
+  const fetchBookings = (page: number = 0) => {
     const token = localStorage.getItem('autoclean_token');
     if (token) {
-      api.get('/bookings')
+      api.get(`/bookings/paged?page=${page}&size=5`)
         .then(res => {
-          const normalized = (res.data.data || []).map((b: any) => {
+          const normalized = (res.data.data.content || []).map((b: any) => {
             let normalizedStatus = b.status?.toLowerCase();
             if (normalizedStatus === 'confirmed') {
               normalizedStatus = 'processing';
@@ -69,12 +72,15 @@ function CustomerApp() {
             };
           });
           setBookings(normalized);
+          setCurrentPage(res.data.data.pageNumber);
+          setTotalPages(res.data.data.totalPages);
         })
         .catch(err => console.error('Failed to fetch bookings', err));
     }
   };
 
-  const fetchUserProfile = () => {
+  useEffect(() => {
+    // Fetch user profile from API if token exists
     const token = localStorage.getItem('autoclean_token');
     if (token) {
       api.get('/auth/me')
@@ -83,19 +89,13 @@ function CustomerApp() {
           console.error('Failed to fetch user', err);
           handleLogout();
         });
-    }
-  };
 
-  // Initialize data from LocalStorage
-  useEffect(() => {
-    const token = localStorage.getItem('autoclean_token');
-    if (token) {
-      fetchUserProfile();
-      fetchBookings();
+      fetchBookings(0);
     } else {
       // Not logged in
       setCurrentUser(null);
       setBookings([]);
+      setTotalPages(0);
     }
 
     // Reviews initialization
@@ -125,14 +125,6 @@ function CustomerApp() {
     }
   }, []);
 
-  // Automatically refresh user bookings and profile when switching tabs to stay in sync with live database changes
-  useEffect(() => {
-    if (activeTab === 'tracker') {
-      fetchBookings();
-    } else if (activeTab === 'profile') {
-      fetchUserProfile();
-    }
-  }, [activeTab]);
   // Poll payment status for newly created booking if transfer method is selected
   useEffect(() => {
     if (paymentMethod !== 'transfer' || !newlyCreatedBooking) return;
@@ -183,17 +175,9 @@ function CustomerApp() {
       });
 
       const savedBooking = res.data.data;
-      let normalizedStatus = savedBooking.status?.toLowerCase();
-      if (normalizedStatus === 'confirmed') {
-        normalizedStatus = 'processing';
-      }
-      const normalizedBooking = {
-        ...savedBooking,
-        status: normalizedStatus
-      };
-      const updated = [normalizedBooking, ...bookings];
+      const updated = [savedBooking, ...bookings];
       setBookings(updated);
-      setNewlyCreatedBooking(normalizedBooking);
+      setNewlyCreatedBooking(savedBooking);
     } catch (err: any) {
       console.error(err);
       alert(err.response?.data?.message || 'Có lỗi khi đặt lịch!');
@@ -216,8 +200,8 @@ function CustomerApp() {
   const handleDeleteBooking = async (id: string) => {
     try {
       await api.patch(`/bookings/${id}/cancel`);
-      const updated = bookings.filter(b => b.id !== id);
-      setBookings(updated);
+      alert('Đã huỷ lịch hẹn thành công');
+      fetchBookings(currentPage);
     } catch (err) {
       console.error(err);
     }
@@ -242,14 +226,6 @@ function CustomerApp() {
     }
   };
 
-  const handleProfileUpdated = (updatedCustomer: any) => {
-    setCurrentUser(prev => prev ? {
-      ...prev,
-      fullName: updatedCustomer.name,
-      phone: updatedCustomer.phone
-    } : null);
-  };
-
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -259,9 +235,24 @@ function CustomerApp() {
       return;
     }
 
-    if (authMode === 'signup' && !authName.trim()) {
-      setAuthError('Vui lòng nhập Họ tên để đăng ký');
-      return;
+    if (authMode === 'signup') {
+      if (!authName.trim()) {
+        setAuthError('Vui lòng nhập Họ tên để đăng ký');
+        return;
+      }
+
+      if (authPassword !== authConfirmPassword) {
+        setAuthError('Mật khẩu xác nhận không trùng khớp');
+        return;
+      }
+      
+      if (authPhone.trim()) {
+        const phoneRegex = /^(0|84)(3|5|7|8|9)[0-9]{8}$/;
+        if (!phoneRegex.test(authPhone.trim())) {
+          setAuthError('Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam (VD: 0987654321)');
+          return;
+        }
+      }
     }
 
     try {
@@ -286,15 +277,14 @@ function CustomerApp() {
       setShowAuthModal(false);
 
       // Fetch user bookings after login
-      api.get('/bookings')
-        .then(resBook => setBookings(resBook.data.data))
-        .catch(err => console.error('Failed to fetch bookings', err));
+      fetchBookings(0);
 
       // Reset fields
       setAuthName('');
       setAuthEmail('');
       setAuthPhone('');
       setAuthPassword('');
+      setAuthConfirmPassword('');
     } catch (err: any) {
       setAuthError(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
     }
@@ -483,6 +473,9 @@ function CustomerApp() {
               bookings={bookings}
               onUpdateStatus={handleUpdateStatus}
               onDeleteBooking={handleDeleteBooking}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => fetchBookings(page)}
             />
           )}
 
@@ -548,7 +541,7 @@ function CustomerApp() {
                 <div className="bg-slate-50 p-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
                   <div className="flex items-center gap-2 text-slate-500 font-medium">
                     <AlertCircle className="w-4.5 h-4.5 text-sky-500 flex-shrink-0" />
-                    Báo giá trên hệ thống là báo giá trọn gói niêm yết, không đòi thêm tiền boa hay nâng khống.
+                    Báo giá trên hệ thống là giá niêm yết đã bao gồm tất cả chi phí và không có phát sinh.
                   </div>
                   <button
                     onClick={() => setActiveTab('booking')}
@@ -564,7 +557,7 @@ function CustomerApp() {
 
           {/* TAB 4: USER PROFILE SECTION */}
           {activeTab === 'profile' && (
-            <UserProfile currentUser={currentUser} onProfileUpdated={handleProfileUpdated} />
+            <UserProfile currentUser={currentUser} />
           )}
 
         </div >
@@ -1026,6 +1019,24 @@ function CustomerApp() {
                       />
                     </div>
                   </div>
+
+                  {authMode === 'signup' && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5 font-bold">Xác nhận mật khẩu</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
+                        <input
+                          id="auth-confirm-password-input"
+                          type="password"
+                          required
+                          placeholder="••••••••"
+                          value={authConfirmPassword}
+                          onChange={(e) => setAuthConfirmPassword(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none rounded-xl text-xs font-medium"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     type="submit"
