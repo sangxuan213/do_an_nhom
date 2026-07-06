@@ -9,14 +9,15 @@ import java.time.temporal.ChronoUnit;
 @Component
 public class TierBookingWindowPolicy {
 
-    // kiem tra xem khach hang co duoc dat lich truoc so ngay nay khong
+    // check if customer can book in advance
     public boolean canBookAdvance(LoyaltyTier tier, LocalDate bookingDate) {
         long daysInAdvance = ChronoUnit.DAYS.between(LocalDate.now(), bookingDate);
         
         int maxDaysAllowed = switch (tier) {
-            case BRONZE -> 7; // giam so ngay xuong vi k co Member
+            case BRONZE -> 7;
             case SILVER -> 10;
             case GOLD -> 12;
+            case PLATINUM -> 14;
             default -> 7;
         };
 
