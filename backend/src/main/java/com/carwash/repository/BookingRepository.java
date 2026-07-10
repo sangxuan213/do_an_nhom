@@ -10,6 +10,9 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
@@ -31,4 +34,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b ORDER BY b.createdAt DESC")
     List<Booking> findAllOrderByCreatedAtDesc();
+
+    // paginated queries
+    Page<Booking> findByUserIdOrderByBookingDateDesc(Long userId, Pageable pageable);
+
+    @Query("SELECT b FROM Booking b ORDER BY b.createdAt DESC")
+    Page<Booking> findAllPaged(Pageable pageable);
 }

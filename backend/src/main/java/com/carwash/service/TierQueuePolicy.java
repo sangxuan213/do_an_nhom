@@ -6,12 +6,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class TierQueuePolicy {
 
-    // xac dinh do uu tien xep hang dua vao hang thanh vien
+    // determine queue priority based on tier
     public int calculateQueuePriority(LoyaltyTier tier) {
         return switch (tier) {
             case BRONZE -> 1;
             case SILVER -> 2;
             case GOLD -> 3;
+            case PLATINUM -> 4;
             default -> 0;
         };
     }

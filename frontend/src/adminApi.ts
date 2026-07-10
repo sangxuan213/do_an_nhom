@@ -8,6 +8,11 @@ export async function getAdminBookings(): Promise<AdminBooking[]> {
   return res.data.data;
 }
 
+export async function getAdminBookingsPaged(page: number = 0, size: number = 10): Promise<any> {
+  const res = await api.get(`/admin/bookings/paged?page=${page}&size=${size}`);
+  return res.data.data;
+}
+
 export async function updateBookingStatus(id: number, status: string): Promise<AdminBooking> {
   const res = await api.patch(`/admin/bookings/${id}/status`, null, {
     params: { status }

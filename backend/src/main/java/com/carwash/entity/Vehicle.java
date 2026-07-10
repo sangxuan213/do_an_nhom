@@ -26,19 +26,17 @@ public class Vehicle {
     @JoinColumn(name = "user_id", nullable = false)
     @NotNull(message = "User is required")
     private User user;
-
     @NotBlank(message = "License plate is required")
     @Size(max = 20, message = "License plate must not exceed 20 characters")
     @Column(name = "license_plate", nullable = false, length = 20)
     private String licensePlate;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "vehicle_type", nullable = false, length = 20)
     @NotNull(message = "Vehicle type is required")
     @Builder.Default
     private VehicleType vehicleType = VehicleType.XE_MAY; // Giả sử mặc định là xe máy
-
     @Size(max = 50, message = "Vehicle name must not exceed 50 characters")
     @Column(name = "name", length = 50)
-    private String name; // Tên gợi nhớ do user tự đặt (VD: "Xe đi làm", "Wave Alpha")
+    private String name;
+
 }

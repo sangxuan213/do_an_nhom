@@ -7,7 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Search, Clock, MapPin, CheckCircle2, AlertCircle, ChevronRight, 
-  Trash2, Cpu, RefreshCw, Smartphone, Hash, Navigation, Filter 
+  Trash2, Smartphone, Hash, Navigation, Filter 
 } from 'lucide-react';
 import { Booking, BookingStatus } from '../types';
 import { VEHICLE_LIST, WASH_SERVICES } from '../data';
@@ -16,9 +16,19 @@ interface BookingTrackerProps {
   bookings: Booking[];
   onUpdateStatus: (id: string, newStatus: BookingStatus) => void;
   onDeleteBooking: (id: string) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
-export default function BookingTracker({ bookings, onUpdateStatus, onDeleteBooking }: BookingTrackerProps) {
+export default function BookingTracker({ 
+  bookings, 
+  onUpdateStatus, 
+  onDeleteBooking,
+  currentPage,
+  totalPages,
+  onPageChange
+}: BookingTrackerProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
@@ -70,15 +80,7 @@ export default function BookingTracker({ bookings, onUpdateStatus, onDeleteBooki
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
   };
 
-  // Status transitions for simulator
-  const advanceStatus = (booking: Booking) => {
-    let next: BookingStatus = 'pending';
-    if (booking.status === 'pending') next = 'processing';
-    else if (booking.status === 'processing') next = 'completed';
-    else if (booking.status === 'completed') next = 'pending';
-    
-    onUpdateStatus(booking.id, next);
-  };
+
 
   return (
     <div className="space-y-6">
@@ -301,27 +303,7 @@ export default function BookingTracker({ bookings, onUpdateStatus, onDeleteBooki
                       </div>
                     </div>
 
-                    {/* Simulation Console Tool */}
-                    <div className="bg-sky-50/40 border border-sky-100 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4 select-none">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-sky-100 p-2 rounded-xl text-sky-600 animate-spin-slow">
-                          <Cpu className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-800 block">Tiện ích trải nghiệm - Trình mô phỏng</span>
-                          <span className="text-xs text-sky-600/90 font-medium">Thử nghiệm tiến trình hoàn thiện rửa xe trực tuyến tại đây</span>
-                        </div>
-                      </div>
 
-                      <button
-                        id={`btn-advance-status-${bk.id}`}
-                        onClick={() => advanceStatus(bk)}
-                        className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-sky-200 text-sky-600 hover:bg-sky-50 rounded-xl text-xs font-bold shadow-xs hover:border-sky-300 transition-all cursor-pointer"
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                        Cập nhật chặng tiếp theo
-                      </button>
-                    </div>
                   </div>
                 </motion.div>
               );
@@ -352,6 +334,43 @@ export default function BookingTracker({ bookings, onUpdateStatus, onDeleteBooki
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-8 pb-4">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 0}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+            >
+              Trang Trước
+            </button>
+            
+            <div className="flex gap-1">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => onPageChange(i)}
+                  className={`w-8 h-8 rounded-lg font-bold text-xs flex items-center justify-center transition-colors ${
+                    currentPage === i 
+                      ? 'bg-sky-500 text-white shadow-md shadow-sky-200' 
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages - 1}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+            >
+              Trang Sau
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

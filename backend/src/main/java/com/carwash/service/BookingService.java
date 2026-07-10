@@ -25,6 +25,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.carwash.dto.response.PageResponse;
+
 @Service
 @RequiredArgsConstructor
 public class BookingService {
@@ -168,6 +172,14 @@ public class BookingService {
                 .collect(Collectors.toList());
     }
 
+    public PageResponse<BookingResponse> getUserBookingsPaged(String userEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
+
+        Page<Booking> page = bookingRepository.findByUserIdOrderByBookingDateDesc(user.getId(), pageable);
+        return PageResponse.of(page.map(this::mapToBookingResponse));
+    }
+
     public BookingResponse getBookingById(Long id, String userEmail) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", "id", id));
@@ -237,6 +249,11 @@ public class BookingService {
                 .stream()
                 .map(this::mapToBookingResponse)
                 .collect(Collectors.toList());
+    }
+
+    public PageResponse<BookingResponse> getAllBookingsPaged(Pageable pageable) {
+        Page<Booking> page = bookingRepository.findAllPaged(pageable);
+        return PageResponse.of(page.map(this::mapToBookingResponse));
     }
 
     @Transactional

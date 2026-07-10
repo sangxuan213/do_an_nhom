@@ -110,6 +110,18 @@ public class AuthService {
         return mapToUserResponse(user);
     }
 
+    @Transactional
+    public UserResponse updateProfile(String email, com.carwash.dto.request.UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+
+        user.setFullName(request.getFullName());
+        user.setPhone(request.getPhone());
+        
+        user = userRepository.save(user);
+        return mapToUserResponse(user);
+    }
+
     public static UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
