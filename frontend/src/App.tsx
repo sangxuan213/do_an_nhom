@@ -19,6 +19,7 @@ import BookingForm from './components/BookingForm';
 import BookingTracker from './components/BookingTracker';
 import ReviewList from './components/ReviewList';
 import UserProfile from './components/UserProfile';
+import ChatWidget from './components/ChatWidget';
 
 // Admin imports
 import AdminLayout from './components/admin/AdminLayout';
@@ -1167,7 +1168,8 @@ function CustomerApp() {
             </div>
           )
         }
-      </AnimatePresence >
+      </AnimatePresence>
+      <ChatWidget />
     </div >
   );
 }

@@ -30,7 +30,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
-            	.requestMatchers("/api/auth/**", "/api/otp/**", "/ws/**").permitAll()
+            	.requestMatchers("/api/auth/**", "/api/otp/**", "/ws/**", "/api/chat/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/services/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/payments/sepay-webhook").permitAll()
                 // Admin-only endpoints
