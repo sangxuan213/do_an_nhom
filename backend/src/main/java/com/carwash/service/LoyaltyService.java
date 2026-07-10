@@ -125,7 +125,7 @@ public class LoyaltyService implements ILoyaltyService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
 
         if (user.getLoyaltyPoints() < pointsToRedeem) {
-            throw new BadRequestException("Not enough points. You have " + user.getLoyaltyPoints());
+            throw new BadRequestException("Điểm tích lũy không đủ. Bạn chỉ có " + user.getLoyaltyPoints() + " điểm.");
         }
 
         user.setLoyaltyPoints(user.getLoyaltyPoints() - pointsToRedeem);

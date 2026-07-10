@@ -54,30 +54,30 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("ServicePackage", "id", request.getServicePackageId()));
 
         if (!servicePackage.getActive()) {
-            throw new BadRequestException("This service package is no longer available");
+            throw new BadRequestException("Gói dịch vụ này hiện không còn hoạt động.");
         }
 
         LocalDate bookingDate;
         try {
             bookingDate = LocalDate.parse(request.getBookingDate());
         } catch (DateTimeParseException e) {
-            throw new BadRequestException("Invalid date format. Use YYYY-MM-DD");
+            throw new BadRequestException("Định dạng ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD");
         }
 
         // ===== Tính năng tier-based booking window( giới hạn ngày đặt trước) =====
         int maxDays = loyaltyService.getMaxBookingDays(user.getLoyaltyTier());
         if (bookingDate.isAfter(LocalDate.now().plusDays(maxDays))) {
             throw new BadRequestException(
-                    "Your membership tier does not allow booking this far in advance. Max allowed: " + maxDays + " days"
+                    "Hạng thành viên của bạn không cho phép đặt lịch trước quá xa. Tối đa cho phép: " + maxDays + " ngày"
             );
         }
 
         if (bookingDate.isBefore(LocalDate.now())) {
-            throw new BadRequestException("Cannot book a date in the past");
+            throw new BadRequestException("Không thể đặt lịch cho ngày trong quá khứ");
         }
 
         if (!TIME_SLOTS.contains(request.getTimeSlot())) {
-            throw new BadRequestException("Invalid time slot. Available slots: " + TIME_SLOTS);
+            throw new BadRequestException("Khung giờ không hợp lệ. Các khung giờ có sẵn: " + TIME_SLOTS);
         }
 
         // Check slot availability
@@ -88,7 +88,7 @@ public class BookingService {
                 .count();
 
         if (activeBookings >= MAX_BOOKINGS_PER_SLOT) {
-            throw new BadRequestException("This time slot is fully booked. Please choose another slot.");
+            throw new BadRequestException("Khung giờ này đã được đặt đầy. Vui lòng chọn khung giờ khác.");
         }
 
         // ===== Tính năng auto-apply perks( tự động giảm giá theo hạng) =====
@@ -102,7 +102,7 @@ public class BookingService {
         int pointsRedeemed = 0;
         if (request.getRedeemPoints() > 0) {
             if (request.getRedeemPoints() > user.getLoyaltyPoints()) {
-                throw new BadRequestException("Insufficient loyalty points. You have " + user.getLoyaltyPoints() + " points.");
+                throw new BadRequestException("Điểm tích lũy không đủ. Bạn chỉ có " + user.getLoyaltyPoints() + " điểm.");
             }
             pointsRedeemed = request.getRedeemPoints();
             // 100 points = $1 discount
@@ -173,7 +173,7 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", "id", id));
 
         if (!booking.getUser().getEmail().equals(userEmail)) {
-            throw new BadRequestException("You do not have access to this booking");
+            throw new BadRequestException("Bạn không có quyền truy cập vào lịch đặt này");
         }
 
         return mapToBookingResponse(booking);
@@ -185,15 +185,15 @@ public class BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", "id", id));
 
         if (!booking.getUser().getEmail().equals(userEmail)) {
-            throw new BadRequestException("You do not have access to this booking");
+            throw new BadRequestException("Bạn không có quyền truy cập vào lịch đặt này");
         }
 
         if (booking.getStatus() == BookingStatus.COMPLETED) {
-            throw new BadRequestException("Cannot cancel a completed booking");
+            throw new BadRequestException("Không thể hủy lịch đặt đã hoàn thành");
         }
 
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            throw new BadRequestException("Booking is already cancelled");
+            throw new BadRequestException("Lịch đặt này đã được hủy trước đó");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
@@ -214,7 +214,7 @@ public class BookingService {
         try {
             date = LocalDate.parse(dateStr);
         } catch (DateTimeParseException e) {
-            throw new BadRequestException("Invalid date format. Use YYYY-MM-DD");
+            throw new BadRequestException("Định dạng ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD");
         }
 
         List<Booking> bookingsOnDate = bookingRepository.findActiveBookingsByDate(date);

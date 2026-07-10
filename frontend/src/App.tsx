@@ -31,8 +31,10 @@ import ServiceManagement from './pages/admin/ServiceManagement';
 import { Booking, BookingStatus, Review, User as UserType } from './types';
 import { INITIAL_REVIEWS } from './data';
 import api from './api';
+import { useToast } from './components/Toast';
 
 function CustomerApp() {
+  const { success, error, info } = useToast();
   const [activeTab, setActiveTab] = useState<string>('booking');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -89,10 +91,10 @@ function CustomerApp() {
     const bId = params.get('bookingId');
     if (payment && bId) {
       if (payment === 'success') {
-        alert(`Thanh toán chuyển khoản thành công cho lịch hẹn #${bId}!`);
+        success(`Thanh toán chuyển khoản thành công cho lịch hẹn #${bId}!`);
         setActiveTab('tracker');
       } else if (payment === 'cancel') {
-        alert(`Thanh toán cho lịch hẹn #${bId} đã bị hủy.`);
+        info(`Thanh toán cho lịch hẹn #${bId} đã bị hủy.`);
         setActiveTab('tracker');
       }
       // Clean up URL query parameters to avoid showing alert again on refresh
@@ -110,7 +112,7 @@ function CustomerApp() {
         const updatedBooking = res.data.data;
         if (updatedBooking.paymentStatus === 'PAID' || updatedBooking.status === 'CONFIRMED') {
           clearInterval(intervalId);
-          alert(`AutoClean đã nhận được tiền chuyển khoản của bạn cho lịch đặt #${newlyCreatedBooking.id}! Lịch hẹn của bạn đã được xác nhận.`);
+          success(`AutoClean đã nhận được tiền chuyển khoản của bạn cho lịch đặt #${newlyCreatedBooking.id}! Lịch hẹn của bạn đã được xác nhận.`);
           handleCloseTicket();
         }
       } catch (err) {
@@ -155,7 +157,7 @@ function CustomerApp() {
       setNewlyCreatedBooking(savedBooking);
     } catch (err: any) {
       console.error(err);
-      alert(err.response?.data?.message || 'Có lỗi khi đặt lịch!');
+      error(err.response?.data?.message || 'Có lỗi khi đặt lịch!');
     }
   };
 
@@ -653,7 +655,7 @@ function CustomerApp() {
                               setPaymentMethod('transfer');
                             } catch (err) {
                               console.error('Error creating SePay payment details:', err);
-                              alert('Không thể tạo thông tin thanh toán. Vui lòng thử lại!');
+                              error('Không thể tạo thông tin thanh toán. Vui lòng thử lại!');
                             } finally {
                               setPaymentLoading(false);
                             }
@@ -803,7 +805,7 @@ function CustomerApp() {
                                 type="button"
                                 onClick={() => {
                                   navigator.clipboard.writeText(paymentDetails?.accountNo || '09455666666');
-                                  alert('Đã sao chép số tài khoản');
+                                  success('Đã sao chép số tài khoản');
                                 }}
                                 className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 transition-colors"
                                 title="Sao chép"
@@ -830,7 +832,7 @@ function CustomerApp() {
                                 type="button"
                                 onClick={() => {
                                   navigator.clipboard.writeText(paymentDetails?.description || `AUTOCLEAN${newlyCreatedBooking.id}`);
-                                  alert('Đã sao chép nội dung');
+                                  success('Đã sao chép nội dung');
                                 }}
                                 className="p-1 hover:bg-indigo-100 rounded text-indigo-400 hover:text-indigo-600 transition-colors"
                                 title="Sao chép"

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Filter, RefreshCcw } from 'lucide-react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Search, Filter, RefreshCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { getAdminBookings, updateBookingStatus } from '../../adminApi';
 import type { AdminBooking } from '../../types';
 import { AdminBookingStatus } from '../../types';
+import { useToast } from '../../components/Toast';
 
 const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
   PENDING: { bg: '#fef3c7', text: '#d97706', label: 'Chờ xử lý' },
@@ -28,11 +29,14 @@ const cardStyle: React.CSSProperties = {
 };
 
 export default function BookingManagement() {
+  const { success, error } = useToast();
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const fetchBookings = () => {
     setLoading(true);
@@ -49,14 +53,15 @@ export default function BookingManagement() {
     try {
       const updated = await updateBookingStatus(id, newStatus);
       setBookings(prev => prev.map(b => b.id === id ? updated : b));
+      success('Cập nhật trạng thái lịch đặt thành công!');
     } catch (err) {
       console.error(err);
-      alert('Lỗi khi cập nhật trạng thái!');
+      error('Lỗi khi cập nhật trạng thái!');
     }
     setUpdatingId(null);
   };
 
-  const filtered = bookings.filter(b => {
+  const filtered = useMemo(() => bookings.filter(b => {
     const matchStatus = !filterStatus || b.status === filterStatus;
     const query = searchQuery.toLowerCase();
     const matchSearch = !query
@@ -64,7 +69,35 @@ export default function BookingManagement() {
       || (b.licensePlate || '').toLowerCase().includes(query)
       || String(b.id).includes(query);
     return matchStatus && matchSearch;
-  });
+  }), [bookings, filterStatus, searchQuery]);
+
+  // Pagination logic
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const paginatedData = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, searchQuery]);
+
+  const getPageNumbers = (): (number | '...')[] => {
+    const pages: (number | '...')[] = [];
+    const maxVisible = 5;
+    if (totalPages <= maxVisible + 2) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (safeCurrentPage > 3) pages.push('...');
+      const start = Math.max(2, safeCurrentPage - 1);
+      const end = Math.min(totalPages - 1, safeCurrentPage + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (safeCurrentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   if (loading) {
     return (
@@ -159,7 +192,7 @@ export default function BookingManagement() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(b => {
+              {paginatedData.map(b => {
                 const sc = statusConfig[b.status] || statusConfig.PENDING;
                 return (
                   <tr key={b.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}>
@@ -217,14 +250,141 @@ export default function BookingManagement() {
           </table>
         </div>
 
-        {/* Footer summary */}
+        {/* Pagination */}
         <div style={{
-          padding: '12px 20px', background: '#f8fafc',
-          borderTop: '1px solid #e2e8f0', fontSize: 11, color: '#64748b', fontWeight: 600,
-          display: 'flex', justifyContent: 'space-between',
+          padding: '14px 20px',
+          background: '#f8fafc',
+          borderTop: '1px solid #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
         }}>
-          <span>Hiển thị {filtered.length} / {bookings.length} đơn hàng</span>
-          <span>
+          {/* Left: info + page size */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>
+              Hiển thị {filtered.length === 0 ? 0 : startIndex + 1}–{Math.min(startIndex + itemsPerPage, filtered.length)} / {filtered.length} đơn hàng
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>Hiển thị</span>
+              <select
+                value={itemsPerPage}
+                onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                style={{
+                  padding: '4px 8px', borderRadius: 6,
+                  border: '1px solid #e2e8f0', fontSize: 11, fontWeight: 600,
+                  outline: 'none', background: '#fff', cursor: 'pointer', color: '#334155',
+                }}
+              >
+                {[5, 10, 20, 50].map(n => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>dòng</span>
+            </div>
+          </div>
+
+          {/* Center: page buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {/* First page */}
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={safeCurrentPage === 1}
+              style={{
+                padding: '6px 8px', borderRadius: 8, border: '1px solid #e2e8f0',
+                background: safeCurrentPage === 1 ? '#f1f5f9' : '#fff',
+                color: safeCurrentPage === 1 ? '#cbd5e1' : '#475569',
+                cursor: safeCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+              title="Trang đầu"
+            >
+              <ChevronsLeft style={{ width: 14, height: 14 }} />
+            </button>
+
+            {/* Prev page */}
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={safeCurrentPage === 1}
+              style={{
+                padding: '6px 8px', borderRadius: 8, border: '1px solid #e2e8f0',
+                background: safeCurrentPage === 1 ? '#f1f5f9' : '#fff',
+                color: safeCurrentPage === 1 ? '#cbd5e1' : '#475569',
+                cursor: safeCurrentPage === 1 ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+              title="Trang trước"
+            >
+              <ChevronLeft style={{ width: 14, height: 14 }} />
+            </button>
+
+            {/* Page numbers */}
+            {getPageNumbers().map((page, idx) =>
+              page === '...' ? (
+                <span key={`ellipsis-${idx}`} style={{ padding: '6px 4px', color: '#94a3b8', fontSize: 12, fontWeight: 600, userSelect: 'none' }}>…</span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  style={{
+                    minWidth: 32, height: 32, borderRadius: 8,
+                    border: safeCurrentPage === page ? '1.5px solid #6366f1' : '1px solid #e2e8f0',
+                    background: safeCurrentPage === page
+                      ? 'linear-gradient(135deg, #6366f1, #818cf8)'
+                      : '#fff',
+                    color: safeCurrentPage === page ? '#fff' : '#475569',
+                    fontWeight: safeCurrentPage === page ? 700 : 500,
+                    fontSize: 12, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.2s',
+                    boxShadow: safeCurrentPage === page ? '0 2px 8px rgba(99,102,241,0.3)' : 'none',
+                  }}
+                >
+                  {page}
+                </button>
+              )
+            )}
+
+            {/* Next page */}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={safeCurrentPage === totalPages}
+              style={{
+                padding: '6px 8px', borderRadius: 8, border: '1px solid #e2e8f0',
+                background: safeCurrentPage === totalPages ? '#f1f5f9' : '#fff',
+                color: safeCurrentPage === totalPages ? '#cbd5e1' : '#475569',
+                cursor: safeCurrentPage === totalPages ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+              title="Trang sau"
+            >
+              <ChevronRight style={{ width: 14, height: 14 }} />
+            </button>
+
+            {/* Last page */}
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={safeCurrentPage === totalPages}
+              style={{
+                padding: '6px 8px', borderRadius: 8, border: '1px solid #e2e8f0',
+                background: safeCurrentPage === totalPages ? '#f1f5f9' : '#fff',
+                color: safeCurrentPage === totalPages ? '#cbd5e1' : '#475569',
+                cursor: safeCurrentPage === totalPages ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s',
+              }}
+              title="Trang cuối"
+            >
+              <ChevronsRight style={{ width: 14, height: 14 }} />
+            </button>
+          </div>
+
+          {/* Right: revenue */}
+          <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>
             Tổng doanh thu (Hoàn thành):{' '}
             <strong style={{ color: '#10b981' }}>
               {new Intl.NumberFormat('vi-VN').format(

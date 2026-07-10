@@ -44,6 +44,16 @@ set ERROR_CODE=0
 @REM ==== START VALIDATION ====
 if not "%JAVA_HOME%"=="" goto OkJHome
 
+@REM Auto-detect JDK in standard installation paths on Windows
+for /d %%i in ("C:\Program Files\Java\jdk-*") do (set "JAVA_HOME=%%i")
+if not "%JAVA_HOME%"=="" goto OkJHome
+
+for /d %%i in ("C:\Program Files\Eclipse Adoptium\jdk-*") do (set "JAVA_HOME=%%i")
+if not "%JAVA_HOME%"=="" goto OkJHome
+
+for /d %%i in ("C:\Program Files\Microsoft\jdk-*") do (set "JAVA_HOME=%%i")
+if not "%JAVA_HOME%"=="" goto OkJHome
+
 echo.
 echo Error: JAVA_HOME not found in your environment. >&2
 echo Please set the JAVA_HOME variable in your environment to match the >&2

@@ -3,6 +3,7 @@ import { RefreshCcw, CheckCircle2, Wrench, AlertTriangle } from 'lucide-react';
 import { getAllMachines, updateMachineStatus } from '../../adminApi';
 import type { Machine } from '../../types';
 import { MachineState } from '../../types';
+import { useToast } from '../../components/Toast';
 
 const stateConfig: Record<string, { bg: string; text: string; label: string; border: string; gradient: string; icon: React.ElementType }> = {
   AVAILABLE: {
@@ -22,6 +23,7 @@ const stateConfig: Record<string, { bg: string; text: string; label: string; bor
 const allStates = [MachineState.AVAILABLE, MachineState.IN_USE, MachineState.MAINTENANCE];
 
 export default function MachineManagement() {
+  const { success, error } = useToast();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -46,9 +48,10 @@ export default function MachineManagement() {
         newState === MachineState.IN_USE ? machine.currentBookingId ?? undefined : undefined
       );
       setMachines(prev => prev.map(m => m.id === machine.id ? updated : m));
+      success('Cập nhật trạng thái máy thành công!');
     } catch (err) {
       console.error(err);
-      alert('Lỗi khi cập nhật trạng thái máy!');
+      error('Lỗi khi cập nhật trạng thái máy!');
     }
     setUpdatingId(null);
   };
