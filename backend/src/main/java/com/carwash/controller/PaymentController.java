@@ -8,6 +8,7 @@ import com.carwash.enums.PaymentStatus;
 import com.carwash.exception.BadRequestException;
 import com.carwash.exception.ResourceNotFoundException;
 import com.carwash.repository.BookingRepository;
+import com.carwash.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ import java.util.regex.Pattern;
 public class PaymentController {
 
     private final BookingRepository bookingRepository;
+    private final BookingService bookingService;
 
     @Value("${sepay.webhook-token}")
     private String sepayWebhookToken;
@@ -128,9 +130,10 @@ public class PaymentController {
 
                 Booking booking = bookingRepository.findById(bookingId).orElse(null);
                 if (booking != null) {
-                    booking.setPaymentStatus(PaymentStatus.PAID);
-                    booking.setStatus(BookingStatus.CONFIRMED);
-                    bookingRepository.save(booking);
+                    bookingService.updateBookingPaymentStatus(bookingId, PaymentStatus.PAID);
+                    if (booking.getStatus() == BookingStatus.PENDING) {
+                        bookingService.updateBookingStatus(bookingId, BookingStatus.CONFIRMED);
+                    }
                     log.info("Booking #{} payment status confirmed via SePay Webhook", bookingId);
                     return ResponseEntity.ok(Map.of("success", true, "message", "Xác nhận thanh toán thành công"));
                 } else {

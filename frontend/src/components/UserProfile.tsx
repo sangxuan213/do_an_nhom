@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { 
   User as UserIcon, Mail, Phone, Award, Star, Calendar, 
   Shield, Edit2, Save, X, Loader2, Car, Sparkles, Check, Info,
-  Bike, Truck, Trash2, Plus
+  Bike, Truck, Trash2, Plus, Gift
 } from 'lucide-react';
 import { User, LoyaltyInfo, VehicleType, CustomerVehicle } from '../types';
 import api from '../api';
@@ -38,6 +38,42 @@ export default function UserProfile({ currentUser, onProfileUpdated }: UserProfi
   const [vehicleLicensePlate, setVehicleLicensePlate] = useState<string>('');
   const [vehicleType, setVehicleType] = useState<VehicleType>(VehicleType.SEDAN);
   const [isSavingVehicle, setIsSavingVehicle] = useState<boolean>(false);
+
+  // Rewards states & list
+  const [redeemedCode, setRedeemedCode] = useState<string | null>(null);
+  const [redeemedGift, setRedeemedGift] = useState<string>('');
+  const [isRedeeming, setIsRedeeming] = useState<boolean>(false);
+  const [confirmRedeemReward, setConfirmRedeemReward] = useState<any | null>(null);
+
+  const rewards = [
+    { id: 1, name: 'Miễn phí Nước uống', points: 50, code: 'FREECOFFEE', desc: 'Nhận 1 chai nước suối hoặc cafe miễn phí tại quầy chờ rửa xe.' },
+    { id: 2, name: 'Voucher Giảm 20.000đ', points: 200, code: 'AUTOCLEAN20K', desc: 'Mã giảm giá 20k áp dụng cho tất cả các gói dịch vụ rửa xe.' },
+    { id: 3, name: 'Phủ Sáp Bóng Lốp Cao Cấp', points: 350, code: 'TIREWAX350', desc: 'Tặng thêm dịch vụ dưỡng lốp và phủ sáp bóng lốp chuyên sâu.' },
+    { id: 4, name: 'Khử Mùi Nano Diệt Khuẩn', points: 500, code: 'NANOCLEAN500', desc: 'Tặng kèm 1 lần xông tinh dầu khử mùi Nano cao cấp trong xe.' },
+    { id: 5, name: 'Voucher Giảm 100.000đ', points: 1000, code: 'AUTOCLEAN100K', desc: 'Mã giảm giá đặc biệt 100k áp dụng cho gói VIP Detailing.' },
+  ];
+
+  const handleRedeem = async (reward: any) => {
+    try {
+      setIsRedeeming(true);
+      setError('');
+      setSuccess('');
+      const res = await api.post('/customer/loyalty/redeem', {
+        points: reward.points,
+        rewardId: reward.id
+      });
+      setLoyalty(res.data.data);
+      setRedeemedGift(reward.name);
+      setRedeemedCode(reward.code);
+      setSuccess(`Đổi quà thành công! Bạn nhận được mã ưu đãi.`);
+    } catch (err: any) {
+      console.error('Failed to redeem reward', err);
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi đổi thưởng.');
+    } finally {
+      setIsRedeeming(false);
+      setConfirmRedeemReward(null);
+    }
+  };
 
   const fetchVehicles = async () => {
     try {
@@ -570,6 +606,53 @@ export default function UserProfile({ currentUser, onProfileUpdated }: UserProfi
             </div>
           )}
 
+          {/* LOYALTY REWARDS REDEMPTION PANEL */}
+          <div className="bg-white rounded-3xl p-6 border border-sky-100 shadow-xl shadow-sky-50 space-y-6">
+            <div>
+              <h4 className="text-sm font-extrabold text-slate-800 tracking-tight flex items-center gap-1.5">
+                <Gift className="w-4.5 h-4.5 text-sky-500" />
+                Đổi quà & Ưu đãi tích điểm
+              </h4>
+              <p className="text-[10px] text-slate-400 font-medium">Sử dụng điểm tích luỹ của bạn để nhận mã giảm giá và dịch vụ miễn phí</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {rewards.map((r) => {
+                const userPoints = loyalty?.totalPoints || 0;
+                const canRedeem = userPoints >= r.points;
+                return (
+                  <div 
+                    key={r.id} 
+                    className="p-4 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 rounded-2xl flex flex-col justify-between space-y-3 transition-colors duration-300"
+                  >
+                    <div>
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="font-extrabold text-slate-800 text-xs sm:text-sm">{r.name}</span>
+                        <span className="shrink-0 bg-sky-150 text-sky-700 text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                          {r.points} pts
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{r.desc}</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={!canRedeem || isRedeeming}
+                      onClick={() => setConfirmRedeemReward(r)}
+                      className={`w-full py-2 rounded-xl text-xs font-bold transition-all duration-300 cursor-pointer ${
+                        canRedeem 
+                          ? 'bg-sky-500 hover:bg-sky-600 text-white shadow-xs' 
+                          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {canRedeem ? 'Đổi Ưu Đãi' : `Cần thêm ${r.points - userPoints} pts`}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* VEHICLES SECTION */}
           <div className="bg-white rounded-3xl p-6 border border-sky-100 shadow-xl shadow-sky-50 space-y-6">
             <div className="flex justify-between items-center">
@@ -715,6 +798,70 @@ export default function UserProfile({ currentUser, onProfileUpdated }: UserProfi
           </div>
         </div>
       </div>
+      {/* Redeemed Reward success modal */}
+      {redeemedCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-sky-100 shadow-2xl flex flex-col items-center text-center space-y-4 animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center">
+              <Gift className="w-8 h-8 text-emerald-600 animate-bounce" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800">Đổi Quà Thành Công!</h3>
+              <p className="text-xs text-slate-500 mt-1">Bạn đã đổi thành công **{redeemedGift}**</p>
+            </div>
+            <div className="w-full bg-slate-50 border border-dashed border-slate-200 p-3.5 rounded-2xl">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Mã Ưu Đãi Của Bạn</span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="font-mono text-lg font-black text-sky-600 select-all tracking-wider">{redeemedCode}</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 leading-relaxed">Hãy copy mã này và nhập vào phần **Ghi chú** khi tạo đơn đặt lịch tiếp theo để nhân viên áp dụng cho bạn nhé!</p>
+            <button
+              onClick={() => {
+                setRedeemedCode(null);
+                setRedeemedGift('');
+              }}
+              className="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-100 transition-all cursor-pointer"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Redemption Confirmation Modal */}
+      {confirmRedeemReward && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-sky-100 shadow-2xl flex flex-col items-center text-center space-y-4 animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-sky-50 rounded-full flex items-center justify-center">
+              <Gift className="w-8 h-8 text-sky-600 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-800">Xác Nhận Đổi Quà</h3>
+              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                Bạn có chắc chắn muốn dùng <span className="font-extrabold text-sky-600">{confirmRedeemReward.points} điểm</span> để đổi ưu đãi **"{confirmRedeemReward.name}"** không?
+              </p>
+            </div>
+            <div className="flex w-full gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmRedeemReward(null)}
+                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={isRedeeming}
+                onClick={() => handleRedeem(confirmRedeemReward)}
+                className="flex-1 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-sky-100 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isRedeeming ? 'Đang xử lý...' : 'Xác nhận'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

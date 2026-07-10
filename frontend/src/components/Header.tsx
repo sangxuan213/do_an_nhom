@@ -10,7 +10,14 @@ import { Link } from 'react-router-dom';
 interface HeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  currentUser: { fullName: string; email: string; phone?: string; role?: string } | null;
+  currentUser: { 
+    fullName: string; 
+    email: string; 
+    phone?: string; 
+    role?: string;
+    loyaltyPoints?: number;
+    loyaltyTier?: string;
+  } | null;
   onOpenAuth: () => void;
   onLogout: () => void;
 }
@@ -78,7 +85,10 @@ export default function Header({ activeTab, setActiveTab, currentUser, onOpenAut
                 )}
                 <div className="hidden lg:flex flex-col text-right">
                   <span className="text-xs font-bold text-slate-800">Chào, {currentUser.fullName} 👋</span>
-                  <span className="text-[9px] text-slate-400 font-medium">{currentUser.email}</span>
+                  <span className="text-[10px] text-sky-600 font-bold flex items-center gap-1 justify-end mt-0.5">
+                    <Sparkles className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                    {currentUser.loyaltyTier || 'BRONZE'} • {currentUser.loyaltyPoints || 0} pts
+                  </span>
                 </div>
                 <div
                   className="w-8 h-8 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center font-bold text-xs cursor-pointer hover:bg-sky-100 transition-colors shadow-sm"

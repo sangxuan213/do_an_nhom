@@ -305,7 +305,18 @@ public class BookingService {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", "id", id));
 
+        PaymentStatus oldPaymentStatus = booking.getPaymentStatus();
         booking.setPaymentStatus(status);
+
+        // Award points when payment status is changed to PAID and points have not been awarded yet
+        if (status == PaymentStatus.PAID && oldPaymentStatus != PaymentStatus.PAID) {
+            if (booking.getPointsEarned() == null || booking.getPointsEarned() == 0) {
+                int pointsEarned = booking.getServicePackage().getPointsEarned();
+                booking.setPointsEarned(pointsEarned);
+                loyaltyService.awardPoints(booking.getUser().getId(), pointsEarned);
+            }
+        }
+
         booking = bookingRepository.save(booking);
 
         // Broadcast real-time websocket notification for updated booking

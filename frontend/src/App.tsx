@@ -113,6 +113,12 @@ function CustomerApp() {
   const fetchBookings = (page: number = 0) => {
     const token = localStorage.getItem('autoclean_token');
     if (token) {
+      api.get('/auth/me')
+        .then(res => {
+          setCurrentUser(res.data.data);
+        })
+        .catch(err => console.error('Failed to refresh user profile:', err));
+
       api.get(`/bookings/paged?page=${page}&size=5`)
         .then(res => {
           const normalized = (res.data.data.content || []).map((b: any) => {

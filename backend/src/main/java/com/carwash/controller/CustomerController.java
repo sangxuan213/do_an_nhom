@@ -36,4 +36,16 @@ public class CustomerController {
         LoyaltyResponse loyalty = loyaltyService.getLoyaltyProfile(authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Lay thong tin loyalty thanh cong", loyalty));
     }
+
+    // đổi quà bằng điểm tích lũy
+    @PostMapping("/loyalty/redeem")
+    public ResponseEntity<ApiResponse<LoyaltyResponse>> redeemPoints(
+            Authentication authentication,
+            @RequestBody java.util.Map<String, Object> request) {
+        int points = (Integer) request.get("points");
+        Long rewardId = request.get("rewardId") != null ? Long.valueOf(request.get("rewardId").toString()) : null;
+        loyaltyService.redeemPoints(authentication.getName(), points, rewardId);
+        LoyaltyResponse loyalty = loyaltyService.getLoyaltyProfile(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Đổi quà thành công!", loyalty));
+    }
 }
