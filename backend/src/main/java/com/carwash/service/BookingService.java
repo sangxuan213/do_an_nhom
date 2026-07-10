@@ -8,11 +8,13 @@ import com.carwash.entity.Booking;
 import com.carwash.entity.ServicePackage;
 import com.carwash.entity.User;
 import com.carwash.enums.BookingStatus;
+import com.carwash.enums.PaymentStatus;
 import com.carwash.exception.BadRequestException;
 import com.carwash.exception.ResourceNotFoundException;
 import com.carwash.repository.BookingRepository;
 import com.carwash.repository.ServicePackageRepository;
 import com.carwash.repository.UserRepository;
+import com.carwash.config.NotificationWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,6 +68,18 @@ public class BookingService {
             bookingDate = LocalDate.parse(request.getBookingDate());
         } catch (DateTimeParseException e) {
             throw new BadRequestException("Định dạng ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD");
+        }
+
+        // Giới hạn lượt đặt một người trong một ngày chỉ được đặt 1 lần (Cho phép đặt thêm nếu tất cả đơn trong ngày đã thanh toán)
+        List<Booking> userBookingsToday = bookingRepository.findByUserIdAndBookingDateAndStatusNot(
+                user.getId(), bookingDate, BookingStatus.CANCELLED
+        );
+        if (!userBookingsToday.isEmpty()) {
+            boolean hasUnpaidBooking = userBookingsToday.stream()
+                    .anyMatch(b -> b.getPaymentStatus() != com.carwash.enums.PaymentStatus.PAID);
+            if (hasUnpaidBooking) {
+                throw new BadRequestException("Bạn đã có một lịch đặt chưa thanh toán trong ngày này. Vui lòng hoàn tất thanh toán để có thể tiếp tục đặt lịch.");
+            }
         }
 
         // ===== Tính năng tier-based booking window( giới hạn ngày đặt trước) =====
@@ -159,6 +173,9 @@ public class BookingService {
             userRepository.save(user);
         }
 
+        // Broadcast real-time websocket notification for new booking
+        NotificationWebSocketHandler.broadcast("NEW_BOOKING");
+
         return mapToBookingResponse(booking);
     }
 
@@ -166,7 +183,7 @@ public class BookingService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
 
-        return bookingRepository.findByUserIdOrderByBookingDateDesc(user.getId())
+        return bookingRepository.findByUserIdAndStatusNotOrderByBookingDateDesc(user.getId(), BookingStatus.CANCELLED)
                 .stream()
                 .map(this::mapToBookingResponse)
                 .collect(Collectors.toList());
@@ -176,7 +193,7 @@ public class BookingService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", userEmail));
 
-        Page<Booking> page = bookingRepository.findByUserIdOrderByBookingDateDesc(user.getId(), pageable);
+        Page<Booking> page = bookingRepository.findByUserIdAndStatusNotOrderByBookingDateDesc(user.getId(), BookingStatus.CANCELLED, pageable);
         return PageResponse.of(page.map(this::mapToBookingResponse));
     }
 
@@ -218,6 +235,10 @@ public class BookingService {
         }
 
         booking = bookingRepository.save(booking);
+
+        // Broadcast real-time websocket notification for cancelled booking
+        NotificationWebSocketHandler.broadcast("CANCEL_BOOKING");
+
         return mapToBookingResponse(booking);
     }
 
@@ -272,6 +293,24 @@ public class BookingService {
         }
 
         booking = bookingRepository.save(booking);
+
+        // Broadcast websocket notification for status update
+        NotificationWebSocketHandler.broadcast("UPDATE_BOOKING");
+
+        return mapToBookingResponse(booking);
+    }
+
+    @Transactional
+    public BookingResponse updateBookingPaymentStatus(Long id, PaymentStatus status) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking", "id", id));
+
+        booking.setPaymentStatus(status);
+        booking = bookingRepository.save(booking);
+
+        // Broadcast real-time websocket notification for updated booking
+        NotificationWebSocketHandler.broadcast("UPDATE_BOOKING");
+
         return mapToBookingResponse(booking);
     }
 

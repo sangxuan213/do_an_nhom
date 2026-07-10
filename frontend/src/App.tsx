@@ -33,6 +33,57 @@ import { INITIAL_REVIEWS } from './data';
 import api from './api';
 import { useToast } from './components/Toast';
 
+const globalWin = window as any;
+if (!globalWin.customerCallbacks) {
+  globalWin.customerCallbacks = new Set<() => void>();
+}
+
+const initCustomerSocket = () => {
+  const globalWin = window as any;
+  const isSocketActive = globalWin.customerSocket && 
+    (globalWin.customerSocket.readyState === WebSocket.OPEN || globalWin.customerSocket.readyState === WebSocket.CONNECTING);
+  
+  if (isSocketActive) {
+    return;
+  }
+
+  if (globalWin.customerSocket) {
+    try { globalWin.customerSocket.close(); } catch (e) {}
+  }
+
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/ws/notifications`;
+  
+  try {
+    const ws = new WebSocket(wsUrl);
+    globalWin.customerSocket = ws;
+
+    ws.onmessage = (event) => {
+      if (event.data === 'UPDATE_BOOKING' || event.data === 'CANCEL_BOOKING') {
+        const msg = event.data === 'UPDATE_BOOKING'
+          ? '🔔 Lịch đặt xe của bạn đã được cập nhật!'
+          : '🔔 Lịch đặt xe của bạn đã bị hủy!';
+        globalWin.customerCallbacks.forEach((cb: any) => cb(msg));
+      }
+    };
+
+    ws.onclose = () => {
+      globalWin.customerSocket = null;
+      if (globalWin.customerReconnectTimeout) clearTimeout(globalWin.customerReconnectTimeout);
+      globalWin.customerReconnectTimeout = setTimeout(initCustomerSocket, 5000);
+    };
+
+    ws.onerror = (err) => {
+      console.error('Customer WebSocket error:', err);
+      if (globalWin.customerSocket) {
+        try { globalWin.customerSocket.close(); } catch (e) {}
+      }
+    };
+  } catch (err) {
+    console.error('Failed to create customer WebSocket:', err);
+  }
+};
+
 function CustomerApp() {
   const { success, error, info } = useToast();
   const [activeTab, setActiveTab] = useState<string>('booking');
@@ -80,6 +131,26 @@ function CustomerApp() {
         .catch(err => console.error('Failed to fetch bookings', err));
     }
   };
+
+  useEffect(() => {
+    const token = localStorage.getItem('autoclean_token');
+    if (token) {
+      initCustomerSocket();
+      
+      const globalWin = window as any;
+      const handleReload = (msg?: string) => {
+        fetchBookings(currentPage);
+        if (msg) {
+          info(msg);
+        }
+      };
+      globalWin.customerCallbacks.add(handleReload);
+
+      return () => {
+        globalWin.customerCallbacks.delete(handleReload);
+      };
+    }
+  }, [currentPage, info]);
 
   useEffect(() => {
     // Fetch user profile from API if token exists
@@ -202,10 +273,11 @@ function CustomerApp() {
   const handleDeleteBooking = async (id: string) => {
     try {
       await api.patch(`/bookings/${id}/cancel`);
-      alert('Đã huỷ lịch hẹn thành công');
+      success('Đã huỷ lịch hẹn thành công!');
       fetchBookings(currentPage);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      error(err.response?.data?.message || 'Có lỗi khi huỷ lịch hẹn!');
     }
   };
 
@@ -288,7 +360,16 @@ function CustomerApp() {
       setAuthPassword('');
       setAuthConfirmPassword('');
     } catch (err: any) {
-      setAuthError(err.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại');
+      const data = err.response?.data;
+      if (data?.message) {
+        setAuthError(data.message);
+      } else if (data?.errors && typeof data.errors === 'object') {
+        // Backend validation errors: { errors: { phone: "...", email: "..." } }
+        const messages = Object.values(data.errors).join('. ');
+        setAuthError(messages);
+      } else {
+        setAuthError('Có lỗi xảy ra, vui lòng thử lại');
+      }
     }
   };
 

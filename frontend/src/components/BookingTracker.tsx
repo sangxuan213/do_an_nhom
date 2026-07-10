@@ -39,8 +39,11 @@ export default function BookingTracker({
   // Filter bookings based on search criteria (phone, license plate, or name)
   const filteredBookings = useMemo(() => {
     return bookings.filter(b => {
+      // Hide cancelled bookings from the customer interface
+      if (b.status?.toLowerCase() === 'cancelled') return false;
+
       // Filter status
-      if (filterStatus !== 'all' && b.status !== filterStatus) return false;
+      if (filterStatus !== 'all' && b.status?.toLowerCase() !== filterStatus) return false;
 
       if (!formattedSearch) return true; // Show all if empty search
 
@@ -57,8 +60,9 @@ export default function BookingTracker({
   }, [bookings, formattedSearch, filterStatus]);
 
   const getStatusText = (status: BookingStatus) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'pending': return 'Đang đợi tiếp nhận';
+      case 'confirmed':
       case 'processing': return 'Đang rửa xe';
       case 'completed': return 'Đã hoàn thành';
       case 'cancelled': return 'Đã hủy lịch';
@@ -67,8 +71,9 @@ export default function BookingTracker({
   };
 
   const getStatusColor = (status: BookingStatus) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'confirmed':
       case 'processing': return 'bg-sky-50 text-sky-700 border-sky-200';
       case 'completed': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'cancelled': return 'bg-rose-50 text-rose-700 border-rose-200';
@@ -151,10 +156,11 @@ export default function BookingTracker({
               const washObj = WASH_SERVICES.find(s => s.id === serviceIdStr);
               
               // Define step active level
+              const normStatus = bk.status?.toLowerCase();
               let activeStepInt = 1;
-              if (bk.status === 'processing') activeStepInt = 2;
-              if (bk.status === 'completed') activeStepInt = 3;
-              if (bk.status === 'cancelled') activeStepInt = -1;
+              if (normStatus === 'processing' || normStatus === 'confirmed') activeStepInt = 2;
+              if (normStatus === 'completed') activeStepInt = 3;
+              if (normStatus === 'cancelled') activeStepInt = -1;
 
               return (
                 <motion.div
@@ -293,6 +299,18 @@ export default function BookingTracker({
                             <span className="text-slate-500 font-medium">Ghi chú yêu cầu:</span>
                             <span className="font-bold text-slate-500 select-all truncate max-w-[200px]" title={bk.notes}>
                               {bk.notes || 'Không có ghi chú'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 font-medium">Thanh toán:</span>
+                            <span className="font-bold text-slate-800">
+                              {bk.paymentMethod === 'TRANSFER' ? 'Chuyển khoản' : 'Tiền mặt'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 font-medium">Trạng thái:</span>
+                            <span className={`font-bold ${bk.paymentStatus === 'PAID' ? 'text-emerald-600' : bk.paymentStatus === 'CANCELLED' ? 'text-rose-600' : 'text-amber-600'}`}>
+                              {bk.paymentStatus === 'PAID' ? 'Đã thanh toán' : bk.paymentStatus === 'CANCELLED' ? 'Đã huỷ' : 'Chưa thanh toán'}
                             </span>
                           </div>
                           <div className="flex justify-between border-t border-slate-100 pt-2 font-bold">

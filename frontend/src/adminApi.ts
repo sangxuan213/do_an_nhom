@@ -20,6 +20,13 @@ export async function updateBookingStatus(id: number, status: string): Promise<A
   return res.data.data;
 }
 
+export async function updateBookingPaymentStatus(id: number, status: string): Promise<AdminBooking> {
+  const res = await api.patch(`/admin/bookings/${id}/payment-status`, null, {
+    params: { status }
+  });
+  return res.data.data;
+}
+
 // ===== User Management =====
 
 export async function getAllUsers(): Promise<AdminUser[]> {

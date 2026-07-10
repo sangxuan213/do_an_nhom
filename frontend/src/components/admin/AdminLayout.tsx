@@ -3,11 +3,93 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { LogOut, Shield, Bell } from 'lucide-react';
 import AdminSidebar from './AdminSidebar';
 import api from '../../api';
+import { useToast } from '../../components/Toast';
+
+// Use window object to store singletons so they survive Vite HMR re-evaluation
+const globalWin = window as any;
+if (!globalWin.notificationCallbacks) {
+  globalWin.notificationCallbacks = new Set<(msg: string) => void>();
+}
+if (!globalWin.lastToastTime) {
+  globalWin.lastToastTime = 0;
+}
+
+const initGlobalSocket = () => {
+  const globalWin = window as any;
+  const isSocketActive = globalWin.globalSocket && 
+    (globalWin.globalSocket.readyState === WebSocket.OPEN || globalWin.globalSocket.readyState === WebSocket.CONNECTING);
+  
+  if (isSocketActive) {
+    return;
+  }
+
+  // Clear any existing connection cleanly
+  if (globalWin.globalSocket) {
+    try { globalWin.globalSocket.close(); } catch (e) {}
+  }
+
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.hostname}:8080/ws/notifications`;
+  
+  try {
+    const ws = new WebSocket(wsUrl);
+    globalWin.globalSocket = ws;
+
+    ws.onmessage = (event) => {
+      if (event.data === 'NEW_BOOKING' || event.data === 'CANCEL_BOOKING') {
+        const now = Date.now();
+        // Global throttle: ignore duplicate events within 2.5 seconds
+        if (now - globalWin.lastToastTime > 2500) {
+          globalWin.lastToastTime = now;
+          const msg = event.data === 'NEW_BOOKING'
+            ? '🔔 Có đơn đặt lịch mới vừa được gửi vào hệ thống!'
+            : '🔔 Một đơn đặt lịch vừa bị hủy bởi khách hàng!';
+          globalWin.notificationCallbacks.forEach((cb: any) => cb(msg));
+        }
+        // Always dispatch custom event to trigger nested component state updates
+        window.dispatchEvent(new CustomEvent('new-booking-received'));
+      }
+    };
+
+    ws.onclose = () => {
+      globalWin.globalSocket = null;
+      if (globalWin.reconnectTimeout) clearTimeout(globalWin.reconnectTimeout);
+      globalWin.reconnectTimeout = setTimeout(initGlobalSocket, 5000);
+    };
+
+    ws.onerror = (err) => {
+      console.error('WebSocket connection error:', err);
+      if (globalWin.globalSocket) {
+        try { globalWin.globalSocket.close(); } catch (e) {}
+      }
+    };
+  } catch (err) {
+    console.error('Failed to create WebSocket:', err);
+  }
+};
 
 export default function AdminLayout() {
   const navigate = useNavigate();
   const [adminUser, setAdminUser] = useState<{ fullName: string; email: string; role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const { success } = useToast();
+
+  useEffect(() => {
+    // Start or reuse global WebSocket connection
+    initGlobalSocket();
+
+    const globalWin = window as any;
+
+    // Register active component's toast callback
+    const handleNotification = (msg: string) => {
+      success(msg);
+    };
+    globalWin.notificationCallbacks.add(handleNotification);
+
+    return () => {
+      globalWin.notificationCallbacks.delete(handleNotification);
+    };
+  }, [success]);
 
   useEffect(() => {
     const token = localStorage.getItem('autoclean_token');

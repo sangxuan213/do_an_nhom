@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Search, Filter, RefreshCcw, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { getAdminBookingsPaged, updateBookingStatus } from '../../adminApi';
+import { getAdminBookingsPaged, updateBookingStatus, updateBookingPaymentStatus } from '../../adminApi';
 import type { AdminBooking } from '../../types';
 import { AdminBookingStatus } from '../../types';
 import { useToast } from '../../components/Toast';
@@ -35,6 +35,18 @@ export default function BookingManagement() {
   const [filterStatus, setFilterStatus] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [updatingPaymentId, setUpdatingPaymentId] = useState<number | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Server-side pagination state
   const [currentPage, setCurrentPage] = useState(0);
@@ -57,17 +69,54 @@ export default function BookingManagement() {
 
   useEffect(() => { fetchBookings(0, pageSize); }, [pageSize]);
 
-  const handleStatusChange = async (id: number, newStatus: string) => {
-    setUpdatingId(id);
-    try {
-      const updated = await updateBookingStatus(id, newStatus);
-      setBookings(prev => prev.map(b => b.id === id ? updated : b));
-      success('Cập nhật trạng thái lịch đặt thành công!');
-    } catch (err) {
-      console.error(err);
-      error('Lỗi khi cập nhật trạng thái!');
-    }
-    setUpdatingId(null);
+  useEffect(() => {
+    const handleNewBooking = () => {
+      fetchBookings(currentPage, pageSize);
+    };
+    window.addEventListener('new-booking-received', handleNewBooking);
+    return () => {
+      window.removeEventListener('new-booking-received', handleNewBooking);
+    };
+  }, [currentPage, pageSize]);
+
+  const handleStatusChange = (id: number, newStatus: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Thay đổi trạng thái',
+      message: 'Bạn có chắc chắn muốn thay đổi trạng thái đơn đặt lịch này?',
+      onConfirm: async () => {
+        setUpdatingId(id);
+        try {
+          const updated = await updateBookingStatus(id, newStatus);
+          setBookings(prev => prev.map(b => b.id === id ? updated : b));
+          success('Cập nhật trạng thái lịch đặt thành công!');
+        } catch (err) {
+          console.error(err);
+          error('Lỗi khi cập nhật trạng thái!');
+        }
+        setUpdatingId(null);
+      }
+    });
+  };
+
+  const handlePaymentStatusChange = (id: number, newStatus: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Thay đổi thanh toán',
+      message: 'Bạn có chắc chắn muốn thay đổi trạng thái thanh toán của đơn đặt lịch này?',
+      onConfirm: async () => {
+        setUpdatingPaymentId(id);
+        try {
+          const updated = await updateBookingPaymentStatus(id, newStatus);
+          setBookings(prev => prev.map(b => b.id === id ? updated : b));
+          success('Cập nhật trạng thái thanh toán thành công!');
+        } catch (err) {
+          console.error(err);
+          error('Lỗi khi cập nhật trạng thái thanh toán!');
+        }
+        setUpdatingPaymentId(null);
+      }
+    });
   };
 
   // Client-side filter on current page data
@@ -180,7 +229,7 @@ export default function BookingManagement() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: '#f8fafc' }}>
-                {['ID', 'Khách hàng', 'SĐT', 'BKS', 'Dịch vụ', 'Ngày hẹn', 'Khung giờ', 'Trạng thái', 'Tổng tiền'].map(h => (
+                {['ID', 'Khách hàng', 'SĐT', 'BKS', 'Dịch vụ', 'Ngày hẹn', 'Khung giờ', 'Trạng thái', 'Thanh toán', 'Tổng tiền'].map(h => (
                   <th key={h} style={{
                     padding: '12px 14px', textAlign: 'left', fontWeight: 700,
                     color: '#64748b', fontSize: 10, textTransform: 'uppercase',
@@ -232,6 +281,32 @@ export default function BookingManagement() {
                         ))}
                       </select>
                     </td>
+                    <td style={{ padding: '14px' }}>
+                      <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 4 }}>
+                        <select
+                          value={b.paymentStatus || 'UNPAID'}
+                          disabled={updatingPaymentId === b.id}
+                          onChange={e => handlePaymentStatusChange(b.id, e.target.value)}
+                          style={{
+                            padding: '5px 10px', borderRadius: 8,
+                            fontSize: 11, fontWeight: 700,
+                            background: b.paymentStatus === 'PAID' ? '#dcfce7' : b.paymentStatus === 'CANCELLED' ? '#fee2e2' : '#fef3c7',
+                            color: b.paymentStatus === 'PAID' ? '#16a34a' : b.paymentStatus === 'CANCELLED' ? '#dc2626' : '#d97706',
+                            border: `1px solid ${b.paymentStatus === 'PAID' ? '#16a34a' : b.paymentStatus === 'CANCELLED' ? '#dc2626' : '#d97706'}30`,
+                            cursor: updatingPaymentId === b.id ? 'wait' : 'pointer',
+                            outline: 'none',
+                            opacity: updatingPaymentId === b.id ? 0.6 : 1,
+                          }}
+                        >
+                          <option value="UNPAID">Chưa trả</option>
+                          <option value="PAID">Đã trả</option>
+                          <option value="CANCELLED">Đã hủy</option>
+                        </select>
+                        <span style={{ fontSize: 10, color: '#64748b', fontWeight: 500, paddingLeft: 4 }}>
+                          {b.paymentMethod === 'TRANSFER' ? 'Chuyển khoản' : 'Tiền mặt'}
+                        </span>
+                      </div>
+                    </td>
                     <td style={{ padding: '14px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
                       {new Intl.NumberFormat('vi-VN').format(b.totalCost || 0)}đ
                     </td>
@@ -240,7 +315,7 @@ export default function BookingManagement() {
               })}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} style={{ padding: 48, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  <td colSpan={10} style={{ padding: 48, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
                     Không tìm thấy đơn hàng nào phù hợp.
                   </td>
                 </tr>
@@ -395,6 +470,118 @@ export default function BookingManagement() {
           </span>
         </div>
       </div>
+
+      {/* Custom Confirm Modal */}
+      {confirmModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.4)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.2s ease-out',
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 24,
+            padding: 32,
+            width: '90%',
+            maxWidth: 400,
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            border: '1px solid #f1f5f9',
+            animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            textAlign: 'center',
+          }}>
+            {/* Warning Icon/Circle */}
+            <div style={{
+              width: 56,
+              height: 56,
+              background: '#fef3c7',
+              color: '#d97706',
+              borderRadius: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 24,
+              margin: '0 auto 20px',
+            }}>
+              ⚠️
+            </div>
+            
+            <h3 style={{
+              fontSize: 18,
+              fontWeight: 800,
+              color: '#0f172a',
+              marginBottom: 12,
+            }}>{confirmModal.title}</h3>
+            
+            <p style={{
+              fontSize: 14,
+              color: '#64748b',
+              lineHeight: 1.6,
+              marginBottom: 28,
+            }}>{confirmModal.message}</p>
+            
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                style={{
+                  flex: 1,
+                  padding: '12px 18px',
+                  borderRadius: 14,
+                  border: '1px solid #e2e8f0',
+                  background: '#fff',
+                  color: '#334155',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px 18px',
+                  borderRadius: 14,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'none'}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes slideUp {
+              from { transform: translateY(16px); opacity: 0; }
+              to { transform: translateY(0); opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

@@ -18,11 +18,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByUserIdOrderByBookingDateDesc(Long userId);
 
+    List<Booking> findByUserIdAndStatusNotOrderByBookingDateDesc(Long userId, BookingStatus status);
+
     List<Booking> findByUserIdAndStatus(Long userId, BookingStatus status);
 
     List<Booking> findByBookingDate(LocalDate bookingDate);
 
     List<Booking> findByBookingDateAndTimeSlot(LocalDate bookingDate, String timeSlot);
+
+    boolean existsByUserIdAndBookingDateAndStatusNot(Long userId, LocalDate bookingDate, BookingStatus status);
+
+    List<Booking> findByUserIdAndBookingDateAndStatusNot(Long userId, LocalDate bookingDate, BookingStatus status);
 
     @Query("SELECT b FROM Booking b WHERE b.bookingDate = :date AND b.status NOT IN ('CANCELLED')")
     List<Booking> findActiveBookingsByDate(@Param("date") LocalDate date);
@@ -30,14 +36,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.user.id = :userId AND b.status = 'COMPLETED'")
     long countCompletedBookingsByUserId(@Param("userId") Long userId);
 
-    List<Booking> findByStatusOrderByBookingDateAsc(BookingStatus status);
-
-    @Query("SELECT b FROM Booking b ORDER BY b.createdAt DESC")
+    @Query("SELECT b FROM Booking b ORDER BY (CASE WHEN b.status = 'CANCELLED' THEN 1 ELSE 0 END) ASC, b.createdAt DESC")
     List<Booking> findAllOrderByCreatedAtDesc();
 
     // paginated queries
     Page<Booking> findByUserIdOrderByBookingDateDesc(Long userId, Pageable pageable);
 
-    @Query("SELECT b FROM Booking b ORDER BY b.createdAt DESC")
+    Page<Booking> findByUserIdAndStatusNotOrderByBookingDateDesc(Long userId, BookingStatus status, Pageable pageable);
+
+    @Query("SELECT b FROM Booking b ORDER BY (CASE WHEN b.status = 'CANCELLED' THEN 1 ELSE 0 END) ASC, b.createdAt DESC")
     Page<Booking> findAllPaged(Pageable pageable);
 }

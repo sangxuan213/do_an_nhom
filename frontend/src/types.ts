@@ -127,6 +127,8 @@ export interface AdminBooking {
   notes: string;
   totalCost: number;
   addOnIds: string[];
+  paymentMethod?: 'CASH' | 'TRANSFER';
+  paymentStatus?: 'UNPAID' | 'PAID' | 'CANCELLED';
 }
 
 export interface Machine {

@@ -3,6 +3,7 @@ package com.carwash.controller;
 import com.carwash.dto.request.MachineStatusRequest;
 import com.carwash.dto.response.*;
 import com.carwash.enums.BookingStatus;
+import com.carwash.enums.PaymentStatus;
 import com.carwash.enums.Role;
 import com.carwash.service.AuthService;
 import com.carwash.service.BookingService;
@@ -56,6 +57,14 @@ public class AdminController {
             @RequestParam BookingStatus status) {
         BookingResponse booking = bookingService.updateBookingStatus(id, status);
         return ResponseEntity.ok(ApiResponse.success("Booking status updated", booking));
+    }
+
+    @PatchMapping("/bookings/{id}/payment-status")
+    public ResponseEntity<ApiResponse<BookingResponse>> updateBookingPaymentStatus(
+            @PathVariable Long id,
+            @RequestParam PaymentStatus status) {
+        BookingResponse booking = bookingService.updateBookingPaymentStatus(id, status);
+        return ResponseEntity.ok(ApiResponse.success("Booking payment status updated", booking));
     }
 
     // ===== User Management =====
