@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const reloadData = () => {
     Promise.all([getAdminBookings(), getAllCustomers(), getAllMachines()])
       .then(([b, c, m]) => {
         setBookings(b);
@@ -40,6 +40,17 @@ export default function AdminDashboard() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    reloadData();
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('new-booking-received', reloadData);
+    return () => {
+      window.removeEventListener('new-booking-received', reloadData);
+    };
   }, []);
 
   const pendingCount = bookings.filter(b => b.status === AdminBookingStatus.PENDING).length;

@@ -225,6 +225,10 @@ public class BookingService {
             throw new BadRequestException("Lịch đặt này đã được hủy trước đó");
         }
 
+        if (booking.getPaymentStatus() == PaymentStatus.PAID) {
+            throw new BadRequestException("Không thể hủy lịch đặt đã được thanh toán");
+        }
+
         booking.setStatus(BookingStatus.CANCELLED);
 
         // Refund redeemed points

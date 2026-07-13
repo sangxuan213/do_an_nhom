@@ -35,11 +35,16 @@ const initGlobalSocket = () => {
     const ws = new WebSocket(wsUrl);
     globalWin.globalSocket = ws;
 
+    ws.onopen = () => {
+      console.log('Admin WebSocket connected successfully to:', wsUrl);
+    };
+
     ws.onmessage = (event) => {
-      if (event.data === 'NEW_BOOKING' || event.data === 'CANCEL_BOOKING') {
+      console.log('Admin WebSocket received event:', event.data);
+      if (event.data === 'NEW_BOOKING' || event.data === 'CANCEL_BOOKING' || event.data === 'UPDATE_BOOKING') {
         const now = Date.now();
-        // Global throttle: ignore duplicate events within 2.5 seconds
-        if (now - globalWin.lastToastTime > 2500) {
+        // Global throttle: ignore duplicate events within 2.5 seconds, and do not show toast for UPDATE_BOOKING
+        if (event.data !== 'UPDATE_BOOKING' && now - globalWin.lastToastTime > 2500) {
           globalWin.lastToastTime = now;
           const msg = event.data === 'NEW_BOOKING'
             ? '🔔 Có đơn đặt lịch mới vừa được gửi vào hệ thống!'
@@ -51,7 +56,8 @@ const initGlobalSocket = () => {
       }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.log('Admin WebSocket closed. Reason:', event.reason, 'Code:', event.code);
       globalWin.globalSocket = null;
       if (globalWin.reconnectTimeout) clearTimeout(globalWin.reconnectTimeout);
       globalWin.reconnectTimeout = setTimeout(initGlobalSocket, 5000);

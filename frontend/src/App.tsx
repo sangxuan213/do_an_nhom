@@ -38,6 +38,9 @@ const globalWin = window as any;
 if (!globalWin.customerCallbacks) {
   globalWin.customerCallbacks = new Set<() => void>();
 }
+if (!globalWin.shownPaymentSuccessIds) {
+  globalWin.shownPaymentSuccessIds = new Set<number>();
+}
 
 const initCustomerSocket = () => {
   const globalWin = window as any;
@@ -121,7 +124,16 @@ function CustomerApp() {
 
       api.get(`/bookings/paged?page=${page}&size=5`)
         .then(res => {
-          const normalized = (res.data.data.content || []).map((b: any) => {
+          const data = res.data.data;
+          const content = data.content || [];
+          
+          // If we deleted the last item on this page, fetch the previous page
+          if (content.length === 0 && data.pageNumber > 0) {
+            fetchBookings(data.pageNumber - 1);
+            return;
+          }
+
+          const normalized = content.map((b: any) => {
             let normalizedStatus = b.status?.toLowerCase();
             if (normalizedStatus === 'confirmed') {
               normalizedStatus = 'processing';
@@ -132,8 +144,8 @@ function CustomerApp() {
             };
           });
           setBookings(normalized);
-          setCurrentPage(res.data.data.pageNumber);
-          setTotalPages(res.data.data.totalPages);
+          setCurrentPage(data.pageNumber);
+          setTotalPages(data.totalPages);
         })
         .catch(err => console.error('Failed to fetch bookings', err));
     }
@@ -146,10 +158,36 @@ function CustomerApp() {
       
       const globalWin = window as any;
       const handleReload = (msg?: string) => {
-        fetchBookings(currentPage);
+        // If we are currently waiting for payment and get an update notification
+        if (msg && msg.includes('cập nhật') && paymentMethod === 'transfer' && newlyCreatedBooking) {
+          // Check payment status immediately
+          api.get(`/bookings/${newlyCreatedBooking.id}`)
+            .then(res => {
+              const updatedBooking = res.data.data;
+              if (updatedBooking.paymentStatus === 'PAID' || updatedBooking.status === 'CONFIRMED') {
+                if (!globalWin.shownPaymentSuccessIds.has(newlyCreatedBooking.id)) {
+                  globalWin.shownPaymentSuccessIds.add(newlyCreatedBooking.id);
+                  success(`AutoClean đã nhận được tiền chuyển khoản của bạn cho lịch đặt #${newlyCreatedBooking.id}! Lịch hẹn của bạn đã được xác nhận.`);
+                  handleCloseTicket();
+                }
+              }
+            })
+            .catch(err => console.error(err));
+          
+          fetchBookings(currentPage);
+          return; // Suppress duplicate generic toast
+        }
+
         if (msg) {
+          // Suppress notification if it was triggered by user's own action (e.g., cancel)
+          if (msg.includes('hủy') && globalWin.suppressNextCancelToast) {
+            globalWin.suppressNextCancelToast = false;
+            fetchBookings(currentPage);
+            return;
+          }
           info(msg);
         }
+        fetchBookings(currentPage);
       };
       globalWin.customerCallbacks.add(handleReload);
 
@@ -157,7 +195,7 @@ function CustomerApp() {
         globalWin.customerCallbacks.delete(handleReload);
       };
     }
-  }, [currentPage, info]);
+  }, [currentPage, info, paymentMethod, newlyCreatedBooking, success]);
 
   useEffect(() => {
     // Fetch user profile from API if token exists
@@ -207,7 +245,9 @@ function CustomerApp() {
 
   // Poll payment status for newly created booking if transfer method is selected
   useEffect(() => {
-    if (paymentMethod !== 'transfer' || !newlyCreatedBooking) return;
+    if (paymentMethod !== 'transfer' || !newlyCreatedBooking) {
+      return;
+    }
 
     let intervalId = setInterval(async () => {
       try {
@@ -215,8 +255,12 @@ function CustomerApp() {
         const updatedBooking = res.data.data;
         if (updatedBooking.paymentStatus === 'PAID' || updatedBooking.status === 'CONFIRMED') {
           clearInterval(intervalId);
-          success(`AutoClean đã nhận được tiền chuyển khoản của bạn cho lịch đặt #${newlyCreatedBooking.id}! Lịch hẹn của bạn đã được xác nhận.`);
-          handleCloseTicket();
+          const globalWin = window as any;
+          if (!globalWin.shownPaymentSuccessIds.has(newlyCreatedBooking.id)) {
+            globalWin.shownPaymentSuccessIds.add(newlyCreatedBooking.id);
+            success(`AutoClean đã nhận được tiền chuyển khoản của bạn cho lịch đặt #${newlyCreatedBooking.id}! Lịch hẹn của bạn đã được xác nhận.`);
+            handleCloseTicket();
+          }
         }
       } catch (err) {
         console.error('Lỗi khi kiểm tra trạng thái thanh toán:', err);
@@ -224,7 +268,7 @@ function CustomerApp() {
     }, 3000); // Check every 3 seconds
 
     return () => clearInterval(intervalId);
-  }, [paymentMethod, newlyCreatedBooking]);
+  }, [paymentMethod, newlyCreatedBooking, success]);
 
   // Sync reviews to LocalStorage on updates (keep as is since we didn't add Review API)
   const saveReviews = (updated: Review[]) => {
@@ -279,10 +323,12 @@ function CustomerApp() {
   // Handle booking deletion
   const handleDeleteBooking = async (id: string) => {
     try {
+      (window as any).suppressNextCancelToast = true;
       await api.patch(`/bookings/${id}/cancel`);
       success('Đã huỷ lịch hẹn thành công!');
       fetchBookings(currentPage);
     } catch (err: any) {
+      (window as any).suppressNextCancelToast = false;
       console.error(err);
       error(err.response?.data?.message || 'Có lỗi khi huỷ lịch hẹn!');
     }
@@ -978,20 +1024,17 @@ function CustomerApp() {
                         ⚠️ Bạn cần chuyển khoản chính xác **Số tiền** và **Nội dung** ở trên để SePay tự động nhận diện giao dịch.
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-center gap-2 py-3 bg-sky-50 border border-sky-200 rounded-2xl text-sky-700 text-xs font-bold select-none">
+                          <RefreshCcw className="w-4 h-4 animate-spin" />
+                          Hệ thống đang tự động kiểm tra giao dịch...
+                        </div>
                         <button
                           type="button"
                           onClick={() => setPaymentMethod(null)}
                           className="px-4 py-3 border border-slate-200 text-slate-500 hover:bg-slate-50 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-1"
                         >
                           <ChevronLeft className="w-4 h-4" /> Quay lại
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCloseTicket}
-                          className="flex-1 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-sky-100 hover:from-sky-600 hover:to-indigo-700 hover:-translate-y-0.5 transition-all text-center select-none"
-                        >
-                          Tôi Đã Chuyển Khoản
                         </button>
                       </div>
                     </div>

@@ -187,14 +187,16 @@ export default function BookingTracker({
                       <span className={`px-3 py-1 border rounded-full text-xs font-bold uppercase tracking-wider ${getStatusColor(bk.status)}`}>
                         {getStatusText(bk.status)}
                       </span>
-                      <button
-                        title="Xoá lịch hẹn"
-                        id={`btn-delete-bk-${bk.id}`}
-                        onClick={() => onDeleteBooking(bk.id)}
-                        className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {bk.paymentStatus !== 'PAID' && (
+                        <button
+                          title="Xoá lịch hẹn"
+                          id={`btn-delete-bk-${bk.id}`}
+                          onClick={() => onDeleteBooking(bk.id)}
+                          className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
